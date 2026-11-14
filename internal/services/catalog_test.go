@@ -1,9 +1,12 @@
 package services
 
 import (
+	"crypto/sha256"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 	"testing/fstest"
@@ -65,6 +68,85 @@ func TestInstallScripts_AreValidBash(t *testing.T) {
 			}
 		}
 	}
+}
+
+// The S3 install fetches one exact SeaweedFS release and unpacks it only once
+// it matches the SHA-256 pinned for the VM's architecture. Whether a pin is
+// the right hash only a real download can tell.
+func TestS3Install_VerifiesThePinnedRelease(t *testing.T) {
+	bash, err := exec.LookPath("bash")
+	if err != nil {
+		t.Skip("bash not installed")
+	}
+	if _, err = exec.LookPath("sha256sum"); err != nil {
+		t.Skip("sha256sum not installed")
+	}
+	r, _ := RecipeByID("s3")
+	inst, err := newInstance(CreateRequest{Name: "s3", Recipe: r.ID, SSHPublicKey: testUserKey})
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, err := render(r.Install, templateValues(inst, nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	download := []byte("not the release")
+	downloadSum := fmt.Sprintf("%x", sha256.Sum256(download))
+	for _, arch := range []string{"amd64", "arm64"} {
+		pin := regexp.MustCompile(`\n\s*` + arch + `\) sum=([0-9a-f]{64}) ;;\n`).FindStringSubmatch(body)
+		if pin == nil {
+			t.Errorf("%s: no SHA-256 pinned", arch)
+			continue
+		}
+		release := regexp.MustCompile(`^https://github\.com/seaweedfs/seaweedfs/releases/download/[0-9]+(\.[0-9]+)+/linux_` + arch + `\.tar\.gz$`)
+		urls, out, unpacked := runS3Download(t, bash, body, arch, download)
+		if !release.MatchString(urls) {
+			t.Errorf("%s: downloaded %q, want one exact release", arch, urls)
+		}
+		if unpacked || !strings.HasPrefix(out, "failed because:") {
+			t.Errorf("%s: a download that does not match the pin was not refused (unpacked: %v):\n%s", arch, unpacked, out)
+		}
+		matching := strings.Replace(body, pin[0], strings.Replace(pin[0], pin[1], downloadSum, 1), 1)
+		if _, out, unpacked := runS3Download(t, bash, matching, arch, download); !unpacked {
+			t.Errorf("%s: a download that matches the pin was not unpacked:\n%s", arch, out)
+		}
+	}
+	if urls, out, _ := runS3Download(t, bash, body, "riscv64", download); urls != "" || !strings.HasPrefix(out, "failed because:") {
+		t.Errorf("an architecture with no pin downloaded %q:\n%s", urls, out)
+	}
+}
+
+// runS3Download runs an S3 install body on a VM of the given architecture,
+// with curl serving download. tar stands in for unpacking and stops the
+// script there, before it would set up the machine running the test.
+func runS3Download(t *testing.T, bash, body, arch string, download []byte) (urls, out string, unpacked bool) {
+	t.Helper()
+	dir := t.TempDir()
+	stubs := map[string]string{
+		"dpkg": `echo "$ARCH"`,
+		"curl": `while [ $# -gt 0 ]; do
+  case $1 in https://*) echo "$1" >> "$STUBS/urls" ;; -o) cp "$STUBS/download" "$2" ;; esac
+  shift
+done`,
+		"tar": `touch "$STUBS/unpacked"; exit 1`,
+	}
+	for name, script := range stubs {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte("#!/bin/sh\n"+script+"\n"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(dir, "download"), download, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cmd := exec.Command(bash, "-c", "set -Eeuo pipefail\nfail() { echo \"failed because: $*\"; exit 1; }\n"+body)
+	cmd.Env = append(os.Environ(), "PATH="+dir+string(os.PathListSeparator)+os.Getenv("PATH"), "STUBS="+dir, "ARCH="+arch, "TMPDIR="+dir)
+	b, _ := cmd.CombinedOutput() // it always fails: tar stops it if nothing earlier does
+	got, err := os.ReadFile(filepath.Join(dir, "urls"))
+	if err != nil && !os.IsNotExist(err) {
+		t.Fatal(err)
+	}
+	_, err = os.Stat(filepath.Join(dir, "unpacked"))
+	return strings.TrimSpace(string(got)), strings.TrimSpace(string(b)), err == nil
 }
 
 func TestInstallScript_WrapsTheBodyInTheStateContract(t *testing.T) {
