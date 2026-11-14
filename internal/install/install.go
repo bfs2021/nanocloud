@@ -197,7 +197,7 @@ func Run(unitBytes []byte) error {
 	}
 
 	ep := installedEndpoint()
-	if url := ep.healthURL(); !waitForHealthy(url, 10, time.Second) {
+	if url := ep.healthURL(); !waitForHealthy(url, ep.certPath, 10, time.Second) {
 		return fmt.Errorf(
 			"%s is active but never answered %s — it may have failed to bind the port or crashed while loading config.\nCheck what happened with: journalctl -u %s -e",
 			serviceName, url, serviceName,

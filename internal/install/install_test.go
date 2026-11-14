@@ -57,7 +57,7 @@ func TestWaitForHealthy(t *testing.T) {
 		}))
 		defer srv.Close()
 
-		if !waitForHealthy(srv.URL, 5, time.Millisecond) {
+		if !waitForHealthy(srv.URL, "", 5, time.Millisecond) {
 			t.Error("waitForHealthy() = false, want true after the endpoint recovered")
 		}
 	})
@@ -68,7 +68,7 @@ func TestWaitForHealthy(t *testing.T) {
 		url := srv.URL
 		srv.Close()
 
-		if waitForHealthy(url, 2, time.Millisecond) {
+		if waitForHealthy(url, "", 2, time.Millisecond) {
 			t.Error("waitForHealthy() = true against a closed listener, want false")
 		}
 	})

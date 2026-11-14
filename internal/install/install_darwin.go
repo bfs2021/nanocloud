@@ -93,7 +93,7 @@ func Run(unitBytes []byte) error {
 	}
 
 	ep := installedEndpoint()
-	if url := ep.healthURL(); !waitForHealthy(url, 20, time.Second) {
+	if url := ep.healthURL(); !waitForHealthy(url, ep.certPath, 20, time.Second) {
 		return fmt.Errorf(
 			"%s was started but never answered %s — it may have failed to bind the port or crashed while loading config.\nCheck what happened with: tail -n 50 %s",
 			label, url, logPath,
