@@ -1,0 +1,9 @@
+# gitleaks reads this from the repository root.
+[extend]
+useDefault = true
+
+# Mock data for the UI's no-backend mode. Its service passwords are made up,
+# and production builds replace the file with mock.stub.ts.
+[[allowlists]]
+description = "UI mock data"
+paths = ['''^web/src/mock\.ts$''']

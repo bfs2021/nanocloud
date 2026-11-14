@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  The macOS counterpart of systemd/nanocloud.service, installed by
+  `sudo nanocloud install` in /Library/LaunchDaemons. It runs the daemon as
+  root at boot and restarts it if it crashes.
+
+  Each running VM lives in its own helper process (`nanocloud vz-machine`).
+  AbandonProcessGroup stops launchd killing those helpers with the daemon, so
+  a restart or upgrade leaves guests running. When the Mac shuts down, each
+  helper powers its guest off cleanly.
+-->
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>io.nanocloud.nanocloud</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/usr/local/bin/nanocloud</string>
+		<string>serve</string>
+		<string>--config</string>
+		<string>/etc/nano-cloud/config.yaml</string>
+	</array>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>KeepAlive</key>
+	<dict>
+		<key>SuccessfulExit</key>
+		<false/>
+	</dict>
+	<key>ThrottleInterval</key>
+	<integer>5</integer>
+	<key>AbandonProcessGroup</key>
+	<true/>
+	<key>ExitTimeOut</key>
+	<integer>20</integer>
+	<key>StandardOutPath</key>
+	<string>/Library/Logs/nanocloud/nanocloud.log</string>
+	<key>StandardErrorPath</key>
+	<string>/Library/Logs/nanocloud/nanocloud.log</string>
+</dict>
+</plist>

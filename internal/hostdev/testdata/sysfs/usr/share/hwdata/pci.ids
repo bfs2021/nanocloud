@@ -1,0 +1,10 @@
+#	List of PCI ID's, trimmed to what these tests need.
+#	Vendor lines start at column 0; device lines carry one leading tab.
+10de  NVIDIA Corporation
+	1c82  GP107 [GeForce GTX 1050 Ti]
+	13ba  GM107GL [Quadro K2200]
+8086  Intel Corporation
+	a110  100 Series PCI Express Root Port #1
+# The class section reuses the vendor indentation and must not be parsed as one.
+C 03  Display controller
+	00  VGA compatible controller

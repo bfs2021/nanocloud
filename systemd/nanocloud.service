@@ -1,0 +1,41 @@
+[Unit]
+Description=Nano Cloud VM Manager
+After=network.target libvirtd.service
+Wants=libvirtd.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/nanocloud serve --config /etc/nano-cloud/config.yaml
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+# Backstop for the daemon's own 10s shutdown timeout: an open console
+# WebSocket could otherwise hold `systemctl restart` for systemd's 90s default.
+TimeoutStopSec=20
+
+# Hardening. nanocloud runs as root because it talks to the system libvirt
+# socket and manages VM disk images, but the sandbox below contains the blast
+# radius of any RCE in the HTTP server or the xorriso/virsh shell-outs.
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ProtectControlGroups=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+RestrictNamespaces=yes
+LockPersonality=yes
+# The only writable path: metadata.json, the image cache and the default
+# disk pool. A storage pool outside /var/lib/nano-cloud must be added here,
+# or VM creation fails with a read-only filesystem error.
+ReadWritePaths=/var/lib/nano-cloud
+# The one exception to ProtectKernelTunables: internal/hostnet disables IPv6
+# on the VLAN links it builds, so the host holds no address on a guest VLAN.
+# The leading "-" tolerates a kernel booted with ipv6.disable=1.
+ReadWritePaths=-/proc/sys/net/ipv6/conf
+
+[Install]
+WantedBy=multi-user.target

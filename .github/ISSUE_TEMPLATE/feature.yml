@@ -1,0 +1,19 @@
+name: Feature request
+description: Something Nano Cloud should do.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Check the README's [What it does not do](https://github.com/nanocloud-io/nanocloud#what-it-does-not-do) list first; I'll close requests for user accounts, clustering, a database or a built-in container runtime. An idea still taking shape fits better in [Discussions](https://github.com/nanocloud-io/nanocloud/discussions/categories/ideas).
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: The problem, not the solution. What do you do today instead?
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would help?

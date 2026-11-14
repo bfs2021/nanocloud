@@ -1,0 +1,95 @@
+id: kubernetes_cluster
+name: Kubernetes cluster
+category: containers
+description: >-
+  A k3s cluster on the latest stable release: one control-plane node and
+  workers, each on its own VM. Download the kubeconfig and use kubectl from
+  your own machine.
+image: ubuntu-24.04
+console: kubernetes
+metrics:
+  - {exporter: kube_state_metrics, role: server}
+# Per machine: a cluster of 3 at the default size is 6 vCPU and 12 GB.
+sizes:
+  - {id: small, label: Small, vcpus: 2, memory_mb: 2048, disk_gb: 20}
+  - {id: medium, label: Medium, vcpus: 2, memory_mb: 4096, disk_gb: 30, default: true}
+  - {id: large, label: Large, vcpus: 4, memory_mb: 8192, disk_gb: 50}
+params:
+  - {id: workers, label: Workers, default: "2", pattern: '^[1-5]$', hint: "a number from 1 to 5"}
+  - {id: token, label: Cluster token, generate: 48, secret: true}
+roles:
+  - id: server
+    label: Control plane
+    count: 1
+    ports: [6443]
+    install: |
+      ip=$(ip -4 route get 1.1.1.1 | awk '{for (i = 1; i < NF; i++) if ($i == "src") print $(i + 1)}')
+      # The kubeconfig is readable by the nanocloud login, so kubectl works on
+      # the node without sudo; nobody else can read it.
+      curl -sfL https://get.k3s.io | INSTALL_K3S_CHANNEL=stable K3S_TOKEN={{.token}} sh -s - server \
+        --write-kubeconfig-mode 640 --write-kubeconfig-group "$(id -gn nanocloud)" --tls-san "$ip"
+      for _ in $(seq 1 100); do
+        if k3s kubectl get nodes --no-headers 2>/dev/null | grep -qw Ready; then break; fi
+        sleep 3
+      done
+      k3s kubectl get nodes --no-headers | grep -qw Ready
+  - id: agent
+    label: Worker
+    count_param: workers
+    after: server
+    env:
+      K3S_URL: "https://{{.server_ip}}:6443"
+    # K3S_URL comes from the daemon once the control plane is ready.
+    install: |
+      # A worker joins through the control plane's API. Check this VM can
+      # reach it first: k3s itself would retry without end, and the install
+      # with it.
+      reachable() { curl -sk -o /dev/null --max-time 5 "$K3S_URL/ping"; }
+      for _ in $(seq 1 40); do
+        if reachable; then break; fi
+        sleep 3
+      done
+      if ! reachable; then
+        # Say how far traffic gets. A control plane that answers ping has
+        # nothing listening; one that does not even answer ARP is on a
+        # network that keeps VMs apart.
+        server=${K3S_URL#https://}
+        server=${server%:*}
+        if ping -c 2 -W 2 "$server" >/dev/null 2>&1; then
+          fail "this worker reaches the control plane's VM at $server, but nothing answers at $K3S_URL"
+        fi
+        case "$(ip neigh show "$server")" in
+          *FAILED*|*INCOMPLETE*)
+            fail "this worker cannot reach the control plane at $K3S_URL: the VM at $server does not answer ARP, so this host's network does not pass traffic between its VMs" ;;
+        esac
+        fail "this worker cannot reach the control plane at $K3S_URL: traffic between the VMs does not get through"
+      fi
+      # Installed without starting, then started without waiting on it, so
+      # a worker that cannot join says why within minutes.
+      curl -sfL https://get.k3s.io | INSTALL_K3S_CHANNEL=stable INSTALL_K3S_SKIP_START=true K3S_TOKEN={{.token}} K3S_URL="$K3S_URL" sh -s - agent
+      systemctl start --no-block k3s-agent
+      for _ in $(seq 1 100); do
+        if systemctl is-active --quiet k3s-agent; then break; fi
+        sleep 3
+      done
+      if ! systemctl is-active --quiet k3s-agent; then
+        journalctl -u k3s-agent --no-pager -n 6 -o cat || true
+        fail "k3s on this worker did not join the control plane at $K3S_URL within 5 minutes; its last words are below"
+      fi
+# Ready once every node — the control plane and each worker — has joined.
+ready_check: test "$(sudo -n k3s kubectl get nodes --no-headers | grep -cw Ready)" -ge {{.nodes}}
+endpoints:
+  - {id: api, label: Kubernetes API, role: server, port: 6443, scheme: https}
+outputs:
+  - {id: api, label: API server, value: "https://{{.addr_api}}"}
+  - {id: try, label: Try it, value: "kubectl --kubeconfig {{.name}}.yaml get nodes"}
+files:
+  - id: kubeconfig
+    label: kubeconfig
+    filename: "{{.name}}.yaml"
+    path: /etc/rancher/k3s/k3s.yaml
+    # Through the gateway. kubectl checks the API server's certificate
+    # against the name "kubernetes", which k3s always includes, so the same
+    # file works at localhost and, shared, at this host's own name.
+    replace:
+      "https://127.0.0.1:6443": "https://{{.addr_api}}\n    tls-server-name: kubernetes"

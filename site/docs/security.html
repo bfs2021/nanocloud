@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Security · Nano Cloud</title>
+    <meta name="theme-color" content="#0a0e17" />
+    <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="../style.css" />
+  </head>
+  <body>
+    <header class="doc-top">
+      <a class="wordmark" href="../"><img src="../mark.svg" alt="" width="30" height="21" />nano·cloud</a>
+      <a href="../demo/">Demo</a>
+      <a href="https://github.com/nanocloud-io/nanocloud">GitHub</a>
+    </header>
+    <div class="doc">
+      <nav class="doc-nav" aria-label="Docs"><a href="install.html">Install</a><a href="update.html">Update and remove</a><a href="networking.html">Networking</a><a href="security.html" aria-current="page">Security</a><a href="macos.html">On a Mac</a></nav>
+      <main>
+        <h1>Security</h1>
+
+<p class="lead">Nano Cloud runs as root, because it manages VMs, disks and host networking. Whoever controls it controls the machine, and everything below follows from that.</p>
+
+<h2>Report a vulnerability</h2>
+<p>Report it privately through <a href="https://github.com/nanocloud-io/nanocloud/security/advisories/new">GitHub's vulnerability reporting</a>, not in a public issue. Include the version (<code>nanocloud version</code>), your platform and the steps to reproduce. I'll answer within a week; the fix ships as a release, and the advisory is published once it's out.</p>
+
+<h2>What the login protects</h2>
+<ul>
+<li>Every API route and console needs a login, apart from <code>/health</code>, the login itself and the page's own files. With no password set, the daemon refuses everything.</li>
+<li>The password is stored as a bcrypt hash; sessions and API tokens only as SHA-256 hashes of 32 random bytes.</li>
+<li>Browser sessions use an <code>HttpOnly</code>, <code>Secure</code>, <code>SameSite=Strict</code> cookie that expires after 30 days unused.</li>
+<li>Requests that change anything, and every console connection, are refused if they come from another site.</li>
+<li>Password guessing is slowed per address: after a few failures, each one doubles the wait, up to 15 minutes.</li>
+<li>Traffic is HTTPS, with a certificate made on first start or one you configure (<code>cert</code> and <code>key</code> under <code>tls:</code> in the configuration).</li>
+<li>Updates are checked against a GPG key built into the binary and the installer, then by checksum, before anything is replaced.</li>
+</ul>
+
+<h2>What it does not protect</h2>
+<ul>
+<li>Anyone with root owns the machine, and today so does any account on it. VM disks and cloud-init seeds are readable by every local account, and a service's seed holds its passwords in plain text. Use a host where every login belongs to someone you'd trust with root. VM disks are not encrypted.</li>
+<li>VMs on the NAT network can reach each other, and a bridged VM is on your network like any other machine.</li>
+<li>The VMs themselves. Their passwords, keys, open ports and updates are yours to manage.</li>
+<li>With <code>enabled: false</code> under <code>tls:</code> (for a reverse proxy), the password crosses the network in the clear unless something in front adds TLS.</li>
+<li>The internet. The daemon listens on every interface, so keep port 8080 to your network or a VPN.</li>
+</ul>
+<p>There's one login and any number of API tokens. A token can do everything except change the password or create and revoke tokens, which need a signed-in browser. There are no users or roles, so don't give a login or a token to anyone you wouldn't give root.</p>
+
+<h2 id="signing-key">Release signing key</h2>
+<p>Every release is signed with this key, and the installer and <code>nanocloud update</code> both check against it:</p>
+<pre><code>nano-cloud releases &lt;releases@nanocloud.io&gt;
+ed25519, fingerprint 5289 9456 DD0B C728 383E  1910 39DE 3648 2CBD 9253
+expires 2028-07-03</code></pre>
+
+<h2 id="outbound">What it sends, and to whom</h2>
+<p>At most every 12 hours the daemon asks GitHub for the latest release; you can turn that off in Settings → Updates. Anything else it fetches, you asked for: cloud images from each distribution's servers, and SSH keys from GitHub when you name a GitHub user. There is no telemetry.</p>
+<p>This site has no analytics, cookies or third-party scripts, and serves its own fonts.</p>
+
+      </main>
+    </div>
+    <footer class="foot">
+      <span>Nano Cloud, open source under Apache-2.0</span>
+      <nav aria-label="Footer"><a href="https://github.com/nanocloud-io/nanocloud">GitHub</a><a href="security.html">Security</a><a href="https://github.com/nanocloud-io/nanocloud/releases">Releases</a></nav>
+      <span class="right">2026</span>
+    </footer>
+  </body>
+</html>

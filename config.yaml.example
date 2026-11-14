@@ -1,0 +1,19 @@
+# nano-cloud configuration example
+# Copy to /etc/nano-cloud/config.yaml (production) or pass via --config for dev.
+#
+# Run `nanocloud install` to write this file automatically.
+
+# libvirt_uri sets the connection URI for the libvirt daemon.
+# Production:   qemu:///system
+# Testing:      test:///default  (libvirt's in-memory fake driver — no KVM needed)
+libvirt_uri: qemu:///system
+
+storage_pools:
+  - name: default
+    path: /var/lib/nano-cloud/vm-disks
+    default: true
+
+  # Optional additional pools — e.g. a faster NVMe volume.
+  # - name: fast-ssd
+  #   path: /mnt/nvme/nano-cloud
+  #   default: false

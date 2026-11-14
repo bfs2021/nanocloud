@@ -1,0 +1,31 @@
+# Go binaries (root-level only)
+/nanocloud
+/nanocloud-linux-amd64
+/nanocloud-linux-arm64
+/nanocloud-darwin-arm64
+*.exe
+*.test
+*.out
+
+# Web build output (web/dist/index.html placeholder is tracked)
+web/node_modules/
+/web/dist/*
+!/web/dist/index.html
+
+# Tooling
+.golangci-cache/
+
+# macOS
+.DS_Store
+
+# Editors
+.idea/
+.vscode/
+*.code-workspace
+*.swp
+*.swo
+
+# Local config overrides
+*.local.yaml
+config.yaml
+

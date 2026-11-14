@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Update and remove · Nano Cloud</title>
+    <meta name="theme-color" content="#0a0e17" />
+    <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="../style.css" />
+  </head>
+  <body>
+    <header class="doc-top">
+      <a class="wordmark" href="../"><img src="../mark.svg" alt="" width="30" height="21" />nano·cloud</a>
+      <a href="../demo/">Demo</a>
+      <a href="https://github.com/nanocloud-io/nanocloud">GitHub</a>
+    </header>
+    <div class="doc">
+      <nav class="doc-nav" aria-label="Docs"><a href="install.html">Install</a><a href="update.html" aria-current="page">Update and remove</a><a href="networking.html">Networking</a><a href="security.html">Security</a><a href="macos.html">On a Mac</a></nav>
+      <main>
+        <h1>Update and remove</h1>
+
+<p class="lead">Nano Cloud tells you when a release is out. Installing it is one command.</p>
+
+<h2>Update</h2>
+<pre><code>sudo nanocloud update</code></pre>
+<p>This downloads the release, checks its signature and checksum, swaps the binary and restarts the service. The previous binary is kept as <code>nanocloud.prev</code> and put back if the new daemon doesn't come up reporting the new version.</p>
+<table>
+<tr><td><code>--check</code></td><td>Just say whether there's a newer release</td></tr>
+<tr><td><code>--version vX.Y.Z</code></td><td>Install a specific release</td></tr>
+</table>
+<p>VMs keep running during an update. The daemon checks for a release at most every 12 hours and shows it in the sidebar and in Settings → Updates, where you can turn the check off. It never installs anything by itself.</p>
+
+<h2>Remove, keeping your VMs</h2>
+<pre><code>sudo nanocloud uninstall</code></pre>
+<p>This removes the binary, the service and the configuration. VM disks, the images they're built on, their definitions and the login stay, and it prints what it left and where. Install again and everything is back. On a Mac the image cache goes too, since each VM there has its own full copy of its disk.</p>
+
+<h2>Remove everything</h2>
+<pre><code>sudo nanocloud uninstall --purge</code></pre>
+<p>This also stops and deletes every VM Nano Cloud made, their disks, the state directory, the login and the certificate. It can't be undone, so it asks you to type a confirmation (<code>--yes</code> skips it). VLAN links it made stay until the host restarts; they hold no address and nothing is saved for them.</p>
+<p>Through the installer script: <code>curl -fsSL …/install.sh | sudo sh -s -- uninstall --purge</code>.</p>
+
+      </main>
+    </div>
+    <footer class="foot">
+      <span>Nano Cloud, open source under Apache-2.0</span>
+      <nav aria-label="Footer"><a href="https://github.com/nanocloud-io/nanocloud">GitHub</a><a href="security.html">Security</a><a href="https://github.com/nanocloud-io/nanocloud/releases">Releases</a></nav>
+      <span class="right">2026</span>
+    </footer>
+  </body>
+</html>

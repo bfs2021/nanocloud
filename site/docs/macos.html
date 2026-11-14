@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nano Cloud on a Mac · Nano Cloud</title>
+    <meta name="theme-color" content="#0a0e17" />
+    <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="../style.css" />
+  </head>
+  <body>
+    <header class="doc-top">
+      <a class="wordmark" href="../"><img src="../mark.svg" alt="" width="30" height="21" />nano·cloud</a>
+      <a href="../demo/">Demo</a>
+      <a href="https://github.com/nanocloud-io/nanocloud">GitHub</a>
+    </header>
+    <div class="doc">
+      <nav class="doc-nav" aria-label="Docs"><a href="install.html">Install</a><a href="update.html">Update and remove</a><a href="networking.html">Networking</a><a href="security.html">Security</a><a href="macos.html" aria-current="page">On a Mac</a></nav>
+      <main>
+        <h1>Nano Cloud on a Mac</h1>
+
+<p class="lead">On an Apple silicon Mac, Nano Cloud runs VMs with Apple's Virtualization framework, which is part of macOS. A Mac is the place to try it; Linux is the place to run it.</p>
+<p>The web console, API, image catalogue, cloud-init, templates, clones, services and recovery loop work as they do on Linux. Nothing else is installed: no Homebrew packages, QEMU or libvirt.</p>
+
+<h2>Install</h2>
+<pre><code>brew install gnupg
+curl -fsSL https://raw.githubusercontent.com/nanocloud-io/nanocloud/main/install.sh | sudo sh</code></pre>
+<p>The installer checks the release's signature with <code>gpg</code>, which macOS doesn't ship. The daemon runs as a root launchd job that starts at boot, before anyone logs in, and serves the console on <code>https://localhost:8080</code>.</p>
+
+<h2>What's different</h2>
+<table>
+<tr><th>Feature</th><th>On a Mac</th></tr>
+<tr><td>Guests</td><td>arm64 Linux; the catalogue lists only arm64 images</td></tr>
+<tr><td>Console</td><td>A serial console in the browser, no graphical one</td></tr>
+<tr><td>Networking</td><td>NAT (192.168.64.0/24). No bridge or VLAN yet</td></tr>
+<tr><td>Service addresses</td><td>Forwarded from ports on the Mac, such as <code>localhost:30432</code></td></tr>
+<tr><td>Snapshots</td><td>Instant APFS clones of the disks; memory isn't saved</td></tr>
+<tr><td>Passthrough, CPU pinning, Secure Boot, TPM</td><td>Not available; always UEFI</td></tr>
+<tr><td>Per-VM CPU and memory graphs</td><td>Not available; the framework doesn't report them</td></tr>
+<tr><td>Restarting or updating the daemon</td><td>VMs keep running; each has its own helper process</td></tr>
+</table>
+<p>The console hides what a Mac can't do, and the API refuses it before writing anything.</p>
+
+<h2>Where things go</h2>
+<table>
+<tr><td>VMs, images, state</td><td><code>/Library/Application Support/nano-cloud</code></td></tr>
+<tr><td>Logs</td><td><code>/Library/Logs/nanocloud/</code></td></tr>
+<tr><td>Service</td><td><code>/Library/LaunchDaemons/io.nanocloud.nanocloud.plist</code></td></tr>
+</table>
+
+      </main>
+    </div>
+    <footer class="foot">
+      <span>Nano Cloud, open source under Apache-2.0</span>
+      <nav aria-label="Footer"><a href="https://github.com/nanocloud-io/nanocloud">GitHub</a><a href="security.html">Security</a><a href="https://github.com/nanocloud-io/nanocloud/releases">Releases</a></nav>
+      <span class="right">2026</span>
+    </footer>
+  </body>
+</html>

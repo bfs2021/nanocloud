@@ -1,0 +1,239 @@
+name: CI
+
+# Branches are covered once, through pull_request; only main has a push
+# trigger. Triggering on both doubled every PR's jobs.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_call:
+
+# Read-only unless a job says otherwise. release.yml reuses this workflow,
+# and a called workflow can only narrow the caller's grant, never widen it.
+permissions:
+  contents: read
+
+# Cancel superseded runs, except on main, where a second merge must not kill
+# the first one's release gate. github.workflow is in the group because
+# release.yml calls this workflow; without it the release would cancel itself.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  test:
+    name: Go tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: "go.mod"
+          cache: true
+
+      # Without these the seed-ISO and disk tests skip, and a green run says
+      # nothing about either.
+      - uses: ./.github/actions/setup-libvirt
+        with:
+          extra-packages: xorriso qemu-utils
+
+      # -p 1: every package shares one libvirtd, and test:///default's state is
+      # shared through it, so packages run in parallel trample each other.
+      - name: go test
+        run: |
+          set -o pipefail
+          go test -p 1 -race -covermode=atomic -coverprofile=coverage.out -v ./... > test.log 2>&1 \
+            || { grep -E -- '^(--- FAIL|FAIL|panic:)|DATA RACE' -A 20 test.log; exit 1; }
+          go tool cover -func=coverage.out | tail -1 | sed 's/^/Go coverage: /' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload test log
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: go-test-log
+          path: test.log
+          retention-days: 7
+
+      # A test that skips proves nothing, and libvirt tests skip silently when
+      # the daemon is unreachable. Only these may skip here, by name.
+      - name: No unexpected skips
+        run: |
+          allowed='TestSampleAll_ReportsGuestUsedMemoryNotBalloonAllocation|TestReadyNotifyUnitHasNoOrderingCycle'
+          unexpected=$(grep -oE -- '--- SKIP: [A-Za-z0-9_/]+' test.log | sed 's/--- SKIP: //' | grep -vxE "$allowed" || true)
+          if [ -n "$unexpected" ]; then
+            echo "::error::Tests skipped that must run in CI:"
+            echo "$unexpected"
+            exit 1
+          fi
+
+      # The macOS build needs cgo and a Mac, but its build tags and non-cgo files
+      # can be vetted here.
+      - name: go vet (darwin/arm64, no cgo)
+        run: GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go vet ./...
+
+  test-macos:
+    name: Go tests (macOS)
+    # The Virtualization.framework backend is cgo and builds only on a Mac;
+    # nothing else runs its tests. libvirt is absent here, so those tests skip.
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: "go.mod"
+          cache: true
+
+      - name: go test
+        run: CGO_ENABLED=1 go test -race ./...
+
+  ui-test:
+    name: UI tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        working-directory: web
+        run: npm ci
+
+      - name: Typecheck
+        working-directory: web
+        run: npm run typecheck
+
+      - name: Lint and formatting
+        working-directory: web
+        run: npm run lint
+
+      - name: Unit and component tests
+        working-directory: web
+        run: npm test
+
+      - name: The shipped bundle has no mock data
+        working-directory: web
+        run: npm run build && npm run check:no-mock
+
+      - name: The demo builds
+        working-directory: web
+        run: npm run build:demo
+
+  e2e:
+    name: E2E smoke
+    # Pinned because older Playwright releases can't install Chromium on
+    # ubuntu-latest (26.04).
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: "go.mod"
+          cache: true
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+
+      - uses: ./.github/actions/setup-libvirt
+
+      - name: Build binary with embedded UI
+        run: make all
+
+      - name: Install Playwright
+        working-directory: e2e
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Run E2E smoke suite
+        working-directory: e2e
+        run: npx playwright test
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-report
+          path: e2e/playwright-report/
+          retention-days: 7
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: "go.mod"
+          cache: true
+
+      - uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
+        with:
+          version: v2.12.2
+          args: --timeout=5m
+
+      # golangci-lint's config here does not run gofmt.
+      - name: gofmt
+        run: |
+          unformatted=$(gofmt -l $(git ls-files '*.go'))
+          if [ -n "$unformatted" ]; then
+            echo "::error::Not gofmt-ed:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+  security:
+    name: Security
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: "go.mod"
+          cache: true
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+
+      # Reports only vulnerabilities in code the binary actually calls.
+      - name: govulncheck
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.1.4 ./...
+
+      # Only what ships in the embedded UI; build tooling never reaches a host.
+      - name: npm audit (shipped UI dependencies)
+        working-directory: web
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: gitleaks
+        env:
+          VERSION: 8.30.1
+          SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+        run: |
+          curl -sSfL -o gitleaks.tgz "https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}/gitleaks_${VERSION}_linux_x64.tar.gz"
+          echo "${SHA256}  gitleaks.tgz" | sha256sum -c -
+          tar -xzf gitleaks.tgz gitleaks
+          ./gitleaks git --redact --verbose --no-banner .
+
+  # Code scanning and dependency review need a public repository (or GitHub
+  # Advanced Security), so they start running once the repository is public.
+  dependency-review:
+    name: Dependency review
+    if: github.event_name == 'pull_request' && !github.event.repository.private
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: high

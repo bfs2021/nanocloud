@@ -1,0 +1,25 @@
+<device>
+  <name>pci_0000_01_00_0</name>
+  <path>/sys/devices/pci0000:00/0000:00:01.0/0000:01:00.0</path>
+  <parent>pci_0000_00_01_0</parent>
+  <driver>
+    <name>vfio-pci</name>
+  </driver>
+  <capability type='pci'>
+    <class>0x030000</class>
+    <domain>0</domain>
+    <bus>1</bus>
+    <slot>0</slot>
+    <function>0</function>
+    <product id='0x1c82'>GP107 [GeForce GTX 1050 Ti]</product>
+    <vendor id='0x10de'>NVIDIA Corporation</vendor>
+    <iommuGroup number='13'>
+      <address domain='0x0000' bus='0x01' slot='0x00' function='0x0'/>
+      <address domain='0x0000' bus='0x01' slot='0x00' function='0x1'/>
+    </iommuGroup>
+    <pci-express>
+      <link validity='cap' port='0' speed='8' width='16'/>
+      <link validity='sta' speed='2.5' width='16'/>
+    </pci-express>
+  </capability>
+</device>

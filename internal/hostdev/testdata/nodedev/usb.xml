@@ -1,0 +1,14 @@
+<device>
+  <name>usb_1_4</name>
+  <path>/sys/devices/pci0000:00/0000:00:14.0/usb1/1-4</path>
+  <parent>usb_usb1</parent>
+  <driver>
+    <name>usbfs</name>
+  </driver>
+  <capability type='usb_device'>
+    <bus>1</bus>
+    <device>4</device>
+    <product id='0x0407'>YubiKey OTP+FIDO+CCID</product>
+    <vendor id='0x1050'>Yubico.com</vendor>
+  </capability>
+</device>

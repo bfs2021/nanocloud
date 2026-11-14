@@ -1,0 +1,103 @@
+package image
+
+// arm64Catalog lists arm64 images for Apple silicon, mirroring the amd64
+// entries in sources and resolution. Each is a UEFI image, the only kind
+// Virtualization.framework boots. Alpine is left out: its aarch64 cloud image
+// stops at the UEFI shell.
+var arm64Catalog = []CatalogEntry{
+	{
+		ID:           "ubuntu-2404-standard-arm64",
+		Name:         "Ubuntu 24.04 LTS",
+		Distro:       "ubuntu",
+		Arch:         "arm64",
+		Variant:      "standard",
+		Version:      "24.04 LTS",
+		ApproxBytes:  600 * 1024 * 1024,
+		IndexURL:     "https://cloud-images.ubuntu.com/releases/24.04/release/",
+		FilePattern:  `^ubuntu-24\.04-server-cloudimg-arm64\.img$`,
+		ChecksumType: string(ChecksumSHA256),
+		URL:          "https://cloud-images.ubuntu.com/releases/24.04/release/ubuntu-24.04-server-cloudimg-arm64.img",
+		ChecksumURL:  "https://cloud-images.ubuntu.com/releases/24.04/release/SHA256SUMS",
+		Filename:     "ubuntu-24.04-server-cloudimg-arm64.img",
+	},
+	{
+		ID:           "ubuntu-2204-standard-arm64",
+		Name:         "Ubuntu 22.04 LTS",
+		Distro:       "ubuntu",
+		Arch:         "arm64",
+		Variant:      "standard",
+		Version:      "22.04 LTS",
+		ApproxBytes:  550 * 1024 * 1024,
+		IndexURL:     "https://cloud-images.ubuntu.com/releases/22.04/release/",
+		FilePattern:  `^ubuntu-22\.04-server-cloudimg-arm64\.img$`,
+		ChecksumType: string(ChecksumSHA256),
+		URL:          "https://cloud-images.ubuntu.com/releases/22.04/release/ubuntu-22.04-server-cloudimg-arm64.img",
+		ChecksumURL:  "https://cloud-images.ubuntu.com/releases/22.04/release/SHA256SUMS",
+		Filename:     "ubuntu-22.04-server-cloudimg-arm64.img",
+	},
+	{
+		ID:           "debian-12-arm64",
+		Name:         "Debian 12 (Bookworm)",
+		Distro:       "debian",
+		Arch:         "arm64",
+		Version:      "12",
+		ApproxBytes:  450 * 1024 * 1024,
+		IndexURL:     "https://cloud.debian.org/images/cloud/bookworm/latest/",
+		FilePattern:  `^debian-12-genericcloud-arm64\.qcow2$`,
+		ChecksumType: string(ChecksumSHA512),
+		URL:          "https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-genericcloud-arm64.qcow2",
+		ChecksumURL:  "https://cloud.debian.org/images/cloud/bookworm/latest/SHA512SUMS",
+		Filename:     "debian-12-genericcloud-arm64.qcow2",
+	},
+	{
+		ID:           "fedora-41-arm64",
+		Name:         "Fedora Cloud 41",
+		Distro:       "fedora",
+		Arch:         "arm64",
+		Version:      "41",
+		ApproxBytes:  550 * 1024 * 1024,
+		IndexURL:     "https://download.fedoraproject.org/pub/fedora/linux/releases/41/Cloud/aarch64/images/",
+		FilePattern:  `^Fedora-Cloud-Base-Generic-41-\d+\.\d+\.aarch64\.qcow2$`,
+		ChecksumType: string(ChecksumSHA256),
+		URL:          "https://download.fedoraproject.org/pub/fedora/linux/releases/41/Cloud/aarch64/images/Fedora-Cloud-Base-Generic-41-1.4.aarch64.qcow2",
+		ChecksumURL:  "https://download.fedoraproject.org/pub/fedora/linux/releases/41/Cloud/aarch64/images/Fedora-Cloud-41-1.4-aarch64-CHECKSUM",
+		Filename:     "Fedora-Cloud-Base-Generic-41-1.4.aarch64.qcow2",
+	},
+	{
+		ID:          "rocky-9-arm64",
+		Name:        "Rocky Linux 9",
+		Distro:      "rocky",
+		Arch:        "arm64",
+		Version:     "9",
+		ApproxBytes: 1100 * 1024 * 1024,
+		URL:         "https://download.rockylinux.org/pub/rocky/9/images/aarch64/Rocky-9-GenericCloud-Base.latest.aarch64.qcow2",
+		ChecksumURL: "https://download.rockylinux.org/pub/rocky/9/images/aarch64/Rocky-9-GenericCloud-Base.latest.aarch64.qcow2.CHECKSUM",
+		Filename:    "Rocky-9-GenericCloud-Base.latest.aarch64.qcow2",
+	},
+	{
+		ID:          "almalinux-9-arm64",
+		Name:        "AlmaLinux 9",
+		Distro:      "alma",
+		Arch:        "arm64",
+		Version:     "9",
+		ApproxBytes: 900 * 1024 * 1024,
+		URL:         "https://repo.almalinux.org/almalinux/9/cloud/aarch64/images/AlmaLinux-9-GenericCloud-latest.aarch64.qcow2",
+		ChecksumURL: "https://repo.almalinux.org/almalinux/9/cloud/aarch64/images/CHECKSUM",
+		Filename:    "AlmaLinux-9-GenericCloud-latest.aarch64.qcow2",
+	},
+	{
+		ID:          "opensuse-leap-156-arm64",
+		Name:        "openSUSE Leap 15.6",
+		Distro:      "opensuse",
+		Arch:        "arm64",
+		Version:     "15.6",
+		ApproxBytes: 600 * 1024 * 1024,
+		URL:         "https://download.opensuse.org/distribution/leap/15.6/appliances/openSUSE-Leap-15.6-Minimal-VM.aarch64-Cloud.qcow2",
+		ChecksumURL: "https://download.opensuse.org/distribution/leap/15.6/appliances/openSUSE-Leap-15.6-Minimal-VM.aarch64-Cloud.qcow2.sha256",
+		Filename:    "openSUSE-Leap-15.6-Minimal-VM.aarch64-Cloud.qcow2",
+	},
+}
+
+func init() {
+	Catalog = append(Catalog, arm64Catalog...)
+}

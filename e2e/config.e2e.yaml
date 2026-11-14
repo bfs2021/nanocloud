@@ -1,0 +1,18 @@
+# Config for the E2E smoke suite: the real nanocloud binary is started with
+# this file and pointed at libvirt's built-in test driver, which provides a
+# pre-seeded running domain named "test" without touching real QEMU/KVM.
+libvirt_uri: test:///default
+port: 18080
+image_cache_dir: /tmp/nanocloud-e2e/images
+storage_pools:
+  - name: e2e-pool
+    path: /tmp/nanocloud-e2e/pool
+    default: true
+# Spec writes are not best-effort: a failed metadata write fails the request.
+# /var/lib/nano-cloud does not exist on a CI runner, so point the store at a
+# writable path or every stop/start returns 500.
+metadata_path: /tmp/nanocloud-e2e/metadata.json
+# Plain HTTP: the suite talks to a throwaway daemon over loopback, and a
+# self-signed certificate would only add a browser exception to manage.
+tls:
+  enabled: false

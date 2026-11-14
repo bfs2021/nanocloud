@@ -1,0 +1,661 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nano Cloud: your own cloud in one file</title>
+    <meta
+      name="description"
+      content="Virtual machines, databases, S3 storage and Kubernetes on a Linux box or a Mac, from one open-source binary with a web console. VMs come back after a power cut."
+    />
+    <meta
+      property="og:title"
+      content="Nano Cloud: your own cloud in one file"
+    />
+    <meta
+      property="og:description"
+      content="Virtual machines, databases, S3 and Kubernetes from one open-source binary on hardware you own."
+    />
+    <meta
+      property="og:image"
+      content="https://nanocloud-io.github.io/nanocloud/social.png"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="theme-color" content="#0a0e17" />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link
+      rel="preload"
+      href="fonts/geist-latin-wght-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link rel="stylesheet" href="style.css" />
+    <script>
+      document.documentElement.classList.add("js");
+    </script>
+  </head>
+  <body>
+    <header class="nav">
+      <a class="wordmark" href="./"
+        ><img src="mark.svg" alt="" width="30" height="21" />nano·cloud</a
+      >
+      <a href="demo/">Demo</a>
+      <a class="opt" href="docs/install.html">Docs</a>
+      <a class="opt" href="https://github.com/nanocloud-io/nanocloud">GitHub</a>
+      <a class="button" href="#get">Install</a>
+    </header>
+
+    <main>
+      <section class="hero" aria-labelledby="title">
+        <div class="hero-stage">
+          <h1 id="title">
+            <span>Your own cloud</span><span>in one file.</span>
+          </h1>
+          <div class="reel-window">
+            <div class="reel" data-reel>
+              <figure>
+                <img
+                  src="screens/hero-dashboard.jpg"
+                  width="1190"
+                  height="744"
+                  alt="The Virtual machines page: five VMs as cards with their state, address and load, and the services they belong to in the sidebar"
+                />
+              </figure>
+              <figure>
+                <img
+                  src="screens/hero-service.jpg"
+                  width="1190"
+                  height="744"
+                  alt="A Kubernetes service: its API address, the kubeconfig download and its three machines, all ready"
+                  loading="lazy"
+                />
+              </figure>
+              <figure>
+                <img
+                  src="screens/hero-create.jpg"
+                  width="1190"
+                  height="744"
+                  alt="Creating a VM: choosing a cloud image, the first of five steps"
+                  loading="lazy"
+                />
+              </figure>
+            </div>
+          </div>
+          <div class="hero-foot">
+            <p>
+              Nano Cloud runs virtual machines, databases, S3 storage and
+              Kubernetes on a Linux box or a Mac, from one binary with a web
+              console. Open source.
+            </p>
+            <div class="actions">
+              <a class="button" href="#get">Install it</a>
+              <a class="button quiet" href="demo/">Try the demo</a>
+            </div>
+          </div>
+          <p class="hero-aside">
+            For Linux with KVM on x86-64, and Macs with Apple silicon.
+            Apache-2.0, no telemetry.
+          </p>
+        </div>
+      </section>
+
+      <section class="block showcase" id="comes-back" aria-labelledby="plug">
+        <div class="showcase-inner split">
+          <h2 id="plug">Pull the plug.</h2>
+          <p class="intro" data-rise style="--i: 1">
+            Every VM you asked to run comes back after a power cut or a crash,
+            and the activity feed says what happened. Try it on this sample
+            host, which follows the same rules as the real one at twenty times
+            the speed.
+          </p>
+
+          <div class="host-panel" data-rise style="--i: 2">
+            <div class="host" data-ui data-host data-power="on">
+              <div class="host-head">
+                <strong>dev-box</strong>
+                <span class="host-state" data-host-state>Up 3 days</span>
+              </div>
+              <ul class="vm-list" data-vms>
+                <li class="vm-row">
+                  <span class="vm-name">web-01</span
+                  ><span class="pill ready">Ready</span
+                  ><span class="vm-up">3d 4h</span>
+                </li>
+                <li class="vm-row">
+                  <span class="vm-name">db-main</span
+                  ><span class="pill ready">Ready</span
+                  ><span class="vm-up">3d 4h</span>
+                </li>
+                <li class="vm-row">
+                  <span class="vm-name">k8s-lab-server</span
+                  ><span class="pill ready">Ready</span
+                  ><span class="vm-up">3d 4h</span>
+                </li>
+                <li class="vm-row">
+                  <span class="vm-name">k8s-lab-agent-1</span
+                  ><span class="pill ready">Ready</span
+                  ><span class="vm-up">3d 4h</span>
+                </li>
+                <li class="vm-row">
+                  <span class="vm-name">cache</span
+                  ><span class="pill ready">Ready</span
+                  ><span class="vm-up">3d 4h</span>
+                </li>
+              </ul>
+              <div class="feed-title">
+                <span>Activity</span><span data-clock></span>
+              </div>
+              <ol class="feed" data-feed aria-live="polite">
+                <li class="feed-empty">
+                  Nothing has happened yet. Pull the plug, then power on.
+                </li>
+              </ol>
+            </div>
+            <div class="controls" data-ui>
+              <div class="control">
+                <span class="control-name"
+                  >Power<small>The whole host</small></span
+                >
+                <button
+                  class="ui-button danger"
+                  type="button"
+                  data-act="power"
+                  disabled
+                >
+                  Pull the plug
+                </button>
+              </div>
+              <div class="control">
+                <span class="control-name"
+                  >Recovery<small>Restart what should run</small></span
+                >
+                <button
+                  class="switch"
+                  type="button"
+                  role="switch"
+                  aria-checked="true"
+                  aria-label="Recovery"
+                  data-act="recovery"
+                  disabled
+                ></button>
+              </div>
+              <div class="control">
+                <span class="control-name"
+                  >db-main<small>Kernel panic</small></span
+                >
+                <button
+                  class="ui-button"
+                  type="button"
+                  data-act="crash"
+                  disabled
+                >
+                  Crash it
+                </button>
+              </div>
+              <div class="control">
+                <span class="control-name"
+                  >web-01<small>Its definition is lost</small></span
+                >
+                <button
+                  class="ui-button"
+                  type="button"
+                  data-act="undefine"
+                  disabled
+                >
+                  Lose it
+                </button>
+              </div>
+              <div class="control">
+                <span class="control-name"
+                  >cache<small>Dies seconds after boot</small></span
+                >
+                <button
+                  class="ui-button"
+                  type="button"
+                  data-act="break"
+                  disabled
+                >
+                  Break it
+                </button>
+              </div>
+              <a class="link panel-link" href="demo/">Open the full demo</a>
+            </div>
+          </div>
+          <noscript
+            ><p class="after-panel">
+              The sample host needs JavaScript. The full demo is at
+              <a class="link" href="demo/">demo/</a>.
+            </p></noscript
+          >
+        </div>
+      </section>
+
+      <section class="block" id="features" aria-labelledby="runs">
+        <div class="features-inner split">
+          <h2 id="runs">What runs on it</h2>
+
+          <article class="feature">
+            <div class="shot" data-rise>
+              <img
+                src="screens/crop-recipe.jpg"
+                width="521"
+                height="183"
+                alt="The PostgreSQL recipe: PostgreSQL from Ubuntu 24.04 with a database and a user ready to connect to, from 1 vCPU and 1 GB, with a Launch button"
+                loading="lazy"
+              />
+            </div>
+            <div data-rise style="--i: 1">
+              <h3>A database is one click.</h3>
+              <p>
+                PostgreSQL, MySQL, S3 storage, Prometheus with Grafana: each is
+                a recipe that builds its VMs, installs the software and hands
+                you the address and the login.
+              </p>
+              <p>
+                No containers to manage. The services are ordinary VMs you can
+                open, snapshot and give more disk.
+              </p>
+            </div>
+          </article>
+
+          <article class="feature">
+            <div class="shot" data-rise>
+              <img
+                src="screens/crop-machines.jpg"
+                width="521"
+                height="233"
+                alt="A Kubernetes cluster's three machines: a control plane and two workers, each ready, with its address"
+                loading="lazy"
+              />
+            </div>
+            <div data-rise style="--i: 1">
+              <h3>A Kubernetes cluster is three VMs.</h3>
+              <p>
+                A k3s control plane and two workers, each on its own VM.
+                Download the kubeconfig and use kubectl from your own machine.
+              </p>
+              <p>
+                Add or remove workers later. Kubernetes owns the containers;
+                Nano Cloud owns the machines.
+              </p>
+            </div>
+          </article>
+
+          <article class="feature">
+            <div class="shot" data-rise>
+              <img
+                src="screens/crop-snapshots.jpg"
+                width="521"
+                height="372"
+                alt="A VM's storage: its 20 GB boot disk, and two snapshots named pre-deploy and clean-install"
+                loading="lazy"
+              />
+            </div>
+            <div data-rise style="--i: 1">
+              <h3>Snapshots before you change things.</h3>
+              <p>
+                Take a snapshot, restore it, clone the VM, or save it as a
+                template for the next one. Add disks and grow them.
+              </p>
+              <p>
+                Disks are files in plain directories you choose as storage
+                pools: qcow2 on Linux, raw images on a Mac.
+              </p>
+            </div>
+          </article>
+
+          <article class="feature">
+            <div class="shot" data-rise>
+              <img
+                src="screens/crop-devices.jpg"
+                width="521"
+                height="475"
+                alt="Passthrough devices: the host's PCI devices, with a warning that the integrated graphics card drives the host's own display"
+                loading="lazy"
+              />
+            </div>
+            <div data-rise style="--i: 1">
+              <h3>Your hardware, attached.</h3>
+              <p>
+                Hand a VM a PCI device or a USB key, pin it to host CPUs, boot
+                it with UEFI, Secure Boot and a TPM, and put it on your own
+                network, or on a VLAN if your switch has them.
+              </p>
+              <p>
+                On Linux, through libvirt and KVM. A Mac has none of this:
+                Apple's Virtualization framework gives a VM plain virtual CPUs,
+                always UEFI, on a NAT network.
+                <a class="link" href="docs/networking.html">Which network to pick</a>
+              </p>
+            </div>
+          </article>
+
+          <article class="feature">
+            <div class="shot" data-ui data-rise>
+              <pre
+                class="code-shot"
+              ><span class="c"># the API every page of the UI uses</span>
+curl -H "Authorization: Bearer $NC_TOKEN" \
+  https://dev-box:8080/vms
+[{ <span class="k">"name"</span>: "web-01",
+   <span class="k">"phase"</span>: "ready",
+   <span class="k">"ip"</span>: "192.168.122.14",
+   <span class="k">"cpu_count"</span>: 2,
+   <span class="k">"memory_mb"</span>: 4096,
+   <span class="c">…</span> }]</pre>
+            </div>
+            <div data-rise style="--i: 1">
+              <h3>Scriptable, too.</h3>
+              <p>
+                Scripts can use the JSON API the web console uses, with tokens
+                you create and revoke in Settings. It is not versioned yet, so
+                a release before 1.0 can change it.
+              </p>
+              <p>
+                A token reaches everything the web console does, VM consoles
+                included, except changing the password and creating or revoking
+                tokens.
+                Those need a signed-in browser, so a leaked token cannot mint
+                its own replacements.
+              </p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="block" id="start" aria-labelledby="nothing">
+        <h2 id="nothing">From nothing to a VM</h2>
+        <div class="steps">
+          <div class="steps-text">
+            <div class="step active" data-step="1">
+              <p>First, one command on the box.</p>
+              <p>
+                The installer checks the release's signature, installs libvirt
+                and QEMU from your distribution, starts the service and prints a
+                password.
+              </p>
+            </div>
+            <div class="step" data-step="2">
+              <p>Then open the address it printed.</p>
+              <p>
+                HTTPS with a certificate made on your box. Check its fingerprint
+                against the one the installer printed, once, and sign in.
+              </p>
+            </div>
+            <div class="step" data-step="3">
+              <p>Pick an image, and it boots.</p>
+              <p>
+                Ubuntu, Debian, Fedora, Alpine and others, each fetched as its
+                newest build. About a minute later the VM has an address and an
+                SSH line to copy.
+              </p>
+            </div>
+          </div>
+          <div class="stage-col">
+            <div
+              class="stage"
+              data-stage
+              data-step="1"
+              data-ui
+              aria-hidden="true"
+            >
+              <div class="state state-1">
+                <pre
+                  class="term"
+                ><code><span class="p">$</span> curl -fsSL https://raw.githubusercontent.com/nanocloud-io/nanocloud/main/install.sh | sudo sh
+<span class="dim">Signature verified.
+Downloading nanocloud v0.2.0 (amd64)...
+Checksum verified.</span>
+nanocloud installed successfully.
+Service is running. Open https://dev-box.lan:8080 in your browser.
+The certificate is self-signed, so the browser will warn once. Its SHA-256 fingerprint is:
+  3A:91:5F:0C:7E:B2:44:19:D8:6A:0F:E3:21:9C:57:AB:4E:08:C2:7D:91:B6:3F:A0:15:E8:62:D4:7B:C9:30:5A
+
+Login password set. Sign in with:
+
+    Kq7mWx3RtPz9HbN2cVfa</code></pre>
+              </div>
+              <div class="state state-2">
+                <div class="login-card">
+                  <span class="addr">https://dev-box.lan:8080</span>
+                  <strong style="font-size: 18px">Sign in to nano·cloud</strong>
+                  <label
+                    >Password<span class="field"
+                      >••••••••••••••••••••</span
+                    ></label
+                  >
+                  <span class="go">Sign in</span>
+                </div>
+              </div>
+              <div class="state state-3">
+                <div class="vm-card">
+                  <div class="vm-card-head">
+                    <div>
+                      <strong>web-01</strong><small>Ubuntu 24.04 LTS</small>
+                    </div>
+                    <span class="pill ready" data-boot-pill>Ready</span>
+                  </div>
+                  <div class="rail" data-rail>
+                    <span class="done">Image</span><span class="done">VM</span
+                    ><span class="done">Network</span
+                    ><span class="done">Install</span
+                    ><span class="done">Ready</span>
+                  </div>
+                  <dl>
+                    <dt>IP</dt>
+                    <dd>192.168.122.14 · NAT</dd>
+                    <dt>Size</dt>
+                    <dd>2 vCPU · 4 GB · 20 GB</dd>
+                  </dl>
+                  <code class="ssh">ssh admin@192.168.122.14</code>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="block" id="limits" aria-labelledby="limits-title">
+        <div class="limits-inner">
+          <h2 id="limits-title">Limits, on purpose</h2>
+          <div class="limit-groups">
+            <div>
+              <h3>Leaves out</h3>
+              <ul class="rows out" data-rise>
+                <li>
+                  Users, roles and single sign-on<span
+                    >one login, API tokens</span
+                  >
+                </li>
+                <li>
+                  Clustering and live migration<span>one box is the unit</span>
+                </li>
+                <li>A container runtime<span>containers run in VMs</span></li>
+                <li>
+                  A database server<span>state is files you can read</span>
+                </li>
+                <li>A hosted version<span>none</span></li>
+                <li>Telemetry<span>none</span></li>
+              </ul>
+            </div>
+            <div>
+              <h3>Needs</h3>
+              <ul class="rows needs" data-rise>
+                <li>
+                  Linux with KVM on x86-64<span>Ubuntu, Debian, Fedora</span>
+                </li>
+                <li>
+                  Or a Mac with Apple silicon<span>macOS 13 or later</span>
+                </li>
+                <li>A browser on your network<span>port 8080</span></li>
+              </ul>
+            </div>
+            <div>
+              <h3>Next to</h3>
+              <ul class="rows next" data-rise>
+                <li>Proxmox VE<span>its own OS, clustering built in</span></li>
+                <li>
+                  Canonical MicroCloud<span>LXD and Ceph, 3 machines for HA</span>
+                </li>
+                <li>
+                  Cockpit Machines<span>starts VMs at boot, no crash recovery</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="block get" id="get" aria-labelledby="get-title">
+        <div class="split">
+          <h2 id="get-title">Install it</h2>
+          <p class="intro">
+            One command on the box. The installer checks the release's
+            signature and checksum before anything runs, starts the service,
+            and prints the address and a password.
+          </p>
+
+          <div class="installer" data-installer>
+            <div class="tabs" role="tablist" aria-label="Platform">
+              <button
+                type="button"
+                role="tab"
+                id="tab-linux"
+                aria-controls="get-linux"
+                aria-selected="true"
+                data-tab
+              >
+                Linux
+              </button>
+              <button
+                type="button"
+                role="tab"
+                id="tab-mac"
+                aria-controls="get-mac"
+                aria-selected="false"
+                tabindex="-1"
+                data-tab
+              >
+                macOS
+              </button>
+            </div>
+            <div
+              class="install-panel"
+              role="tabpanel"
+              id="get-linux"
+              aria-labelledby="tab-linux"
+            >
+              <div class="cmd">
+                <pre
+                  id="cmd-linux"
+                ><code><span data-line>curl -fsSL https://<wbr>raw.githubusercontent.com/<wbr>nanocloud-io/<wbr>nanocloud/<wbr>main/<wbr>install.sh | sudo sh</span></code></pre>
+                <button class="copy" type="button" data-copy="cmd-linux">
+                  Copy
+                </button>
+              </div>
+              <p class="needs">
+                x86-64 with KVM and systemd: Ubuntu, Debian, Fedora and their
+                relatives. It installs libvirt, QEMU and xorriso from your
+                distribution.
+              </p>
+            </div>
+            <div
+              class="install-panel"
+              role="tabpanel"
+              id="get-mac"
+              aria-labelledby="tab-mac"
+            >
+              <div class="cmd">
+                <pre
+                  id="cmd-mac"
+                ><code><span data-line>brew install gnupg</span><span data-line>curl -fsSL https://<wbr>raw.githubusercontent.com/<wbr>nanocloud-io/<wbr>nanocloud/<wbr>main/<wbr>install.sh | sudo sh</span></code></pre>
+                <button class="copy" type="button" data-copy="cmd-mac">
+                  Copy
+                </button>
+              </div>
+              <p class="needs">
+                Apple silicon, macOS 13 or later. gnupg checks the signature;
+                nothing else is installed.
+                <a class="link" href="docs/macos.html">What differs on a Mac</a>
+              </p>
+            </div>
+          </div>
+
+          <div class="after-install">
+            <div>
+              <h3>Update</h3>
+              <code>sudo nanocloud update</code>
+              <p>
+                Checks the signature, swaps the binary and rolls back if the new
+                one does not start. VMs keep running.
+              </p>
+            </div>
+            <div>
+              <h3>Remove</h3>
+              <code>sudo nanocloud uninstall</code>
+              <p>
+                Your VMs and their disks stay. Add <code>--purge</code> to
+                remove everything.
+              </p>
+            </div>
+            <div>
+              <h3>Diagnose</h3>
+              <code>nanocloud doctor</code>
+              <p>Says what the host is missing and how to add it.</p>
+            </div>
+          </div>
+
+          <p class="files">
+            Or install by hand from the release files:
+            <a
+              class="link"
+              href="https://github.com/nanocloud-io/nanocloud/releases/latest/download/nanocloud-linux-amd64"
+              >nanocloud-linux-amd64</a
+            >,
+            <a
+              class="link"
+              href="https://github.com/nanocloud-io/nanocloud/releases/latest/download/nanocloud-darwin-arm64"
+              >nanocloud-darwin-arm64</a
+            >,
+            <a
+              class="link"
+              href="https://github.com/nanocloud-io/nanocloud/releases/latest/download/sha256sums.txt"
+              >sha256sums.txt</a
+            >
+            and
+            <a
+              class="link"
+              href="https://github.com/nanocloud-io/nanocloud/releases/latest/download/sha256sums.txt.sig"
+              >its signature</a
+            >. The <a class="link" href="docs/install.html#by-hand">install
+            guide</a> has the steps, and
+            <a
+              class="link"
+              href="https://github.com/nanocloud-io/nanocloud/releases"
+              >every release</a
+            >
+            is on GitHub.
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <span>Nano Cloud, open source under Apache-2.0</span>
+      <nav aria-label="Footer">
+        <a href="https://github.com/nanocloud-io/nanocloud">GitHub</a>
+        <a href="docs/install.html">Docs</a>
+        <a href="docs/security.html">Security</a>
+        <a href="https://github.com/nanocloud-io/nanocloud/releases"
+          >Releases</a
+        >
+      </nav>
+      <span class="right"
+        >2026 · <a href="docs/security.html#outbound">No tracking</a></span
+      >
+    </footer>
+
+    <script src="site.js" defer></script>
+  </body>
+</html>

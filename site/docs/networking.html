@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Networking · Nano Cloud</title>
+    <meta name="theme-color" content="#0a0e17" />
+    <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="../style.css" />
+  </head>
+  <body>
+    <header class="doc-top">
+      <a class="wordmark" href="../"><img src="../mark.svg" alt="" width="30" height="21" />nano·cloud</a>
+      <a href="../demo/">Demo</a>
+      <a href="https://github.com/nanocloud-io/nanocloud">GitHub</a>
+    </header>
+    <div class="doc">
+      <nav class="doc-nav" aria-label="Docs"><a href="install.html">Install</a><a href="update.html">Update and remove</a><a href="networking.html" aria-current="page">Networking</a><a href="security.html">Security</a><a href="macos.html">On a Mac</a></nav>
+      <main>
+        <h1>Networking</h1>
+
+<p class="lead">Each VM gets one network connection, and you choose where it plugs in: a private network inside the host, or your own network.</p>
+
+<table>
+<tr><th>Choice</th><th>Who can reach the VM</th><th>What it needs</th></tr>
+<tr><td>NAT</td><td>The host and the other VMs. The VM can reach the internet.</td><td>Nothing. It's the default, and the only choice on a Mac.</td></tr>
+<tr><td>Your network (bridge)</td><td>Anything on your network, as with a physical computer</td><td>Linux, a wired connection, and a bridge on the host</td></tr>
+<tr><td>VLAN tag</td><td>Whatever your router allows on that VLAN</td><td>A bridge-capable host, and a router or switch set up for VLANs</td></tr>
+</table>
+
+<h2>NAT</h2>
+<p>The VM gets a private address behind the host, the way a laptop does behind a home router: <code>192.168.122.0/24</code> on Linux, <code>192.168.64.0/24</code> on a Mac. It can reach the internet and every other NAT VM on the host.</p>
+<p>Other machines on your network can't open a connection to it. There are two ways in:</p>
+<ul>
+<li>Each service, such as a database or a Kubernetes API, gets a port on the host that other machines can use once you share the service.</li>
+<li>SSH through the host, from your laptop: <code>ssh -J you@host admin@192.168.122.14</code>.</li>
+</ul>
+<p>NAT VMs aren't isolated from each other. If you need that, use VLANs.</p>
+
+<h2 id="bridge">Your network (bridge)</h2>
+<p>The VM joins your network as if it were plugged into your switch. Your router gives it an address, which shows on its card, and anything on the network can reach it.</p>
+<p>The host needs a bridge: a virtual switch with one of its wired ports plugged in. Wi-Fi can't be bridged. Nano Cloud won't create the bridge, because moving the host's own address onto it can cut you off from a remote machine. Set it up once with your distribution's tools and Nano Cloud offers every bridge that has a wired port.</p>
+<p>On Ubuntu with netplan, replacing <code>enp3s0</code> with your wired port:</p>
+<pre><code>network:
+  version: 2
+  ethernets:
+    enp3s0:
+      dhcp4: false
+  bridges:
+    br0:
+      interfaces: [enp3s0]
+      dhcp4: true</code></pre>
+<p>Save it as <code>/etc/netplan/60-bridge.yaml</code> and apply it with <code>sudo netplan try</code>, which rolls back unless you confirm within two minutes. The host's address moves to <code>br0</code> and may change, so do this at the machine, or be ready to find it again.</p>
+<p>With NetworkManager, on Fedora and others:</p>
+<pre><code>sudo nmcli connection add type bridge ifname br0 con-name br0
+sudo nmcli connection add type bridge-slave ifname enp3s0 master br0
+sudo nmcli connection up br0</code></pre>
+
+<h2 id="vlan">VLAN tag</h2>
+<p>A VLAN splits one cable into several networks that your switch keeps apart. A VM tagged with VLAN 20 sees only the other machines on VLAN 20. Whether VLAN 20 can talk to VLAN 30 is up to your router and its firewall, not Nano Cloud.</p>
+<p>Your network has to be set up for it. The host's switch port must carry tagged VLANs, and something on each VLAN, usually the router, must hand out addresses. On an ordinary home network a tagged VM gets no address.</p>
+<p>You don't have to set up a bridge for this. On the port that carries the host's default route, Nano Cloud adds a VLAN link and a bridge for it, such as <code>enp3s0.20</code> and <code>nc-vlan20</code>. It gives them no address and leaves the port's own settings alone. They don't survive a reboot; Nano Cloud makes them again when it starts a VM that needs them.</p>
+
+<h2>Changing it later</h2>
+<p>You can change a VM's network on its Network tab. The guest picks it up the next time it boots, and the tab says <em>Restart to apply</em> until the VM has been stopped and started. On a new network it will usually get a new address.</p>
+
+      </main>
+    </div>
+    <footer class="foot">
+      <span>Nano Cloud, open source under Apache-2.0</span>
+      <nav aria-label="Footer"><a href="https://github.com/nanocloud-io/nanocloud">GitHub</a><a href="security.html">Security</a><a href="https://github.com/nanocloud-io/nanocloud/releases">Releases</a></nav>
+      <span class="right">2026</span>
+    </footer>
+  </body>
+</html>

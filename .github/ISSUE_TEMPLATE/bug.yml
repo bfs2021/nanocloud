@@ -1,0 +1,70 @@
+name: Bug report
+description: Something doesn't work the way it should.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Security problem? Please use [private reporting](https://github.com/nanocloud-io/nanocloud/security/advisories/new) instead. Questions go in [Discussions](https://github.com/nanocloud-io/nanocloud/discussions/categories/q-a).
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: "`nanocloud version`, or Settings → About in the UI."
+      placeholder: v0.2.0
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Host
+      options:
+        - Linux x86-64
+        - Linux arm64
+        - macOS (Apple silicon)
+    validations:
+      required: true
+  - type: input
+    id: distro
+    attributes:
+      label: OS and version
+      placeholder: Ubuntu 24.04, or macOS 26.1
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Create a VM from Ubuntu 24.04 with bridge networking
+        2. …
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened instead?
+      description: Error messages exactly as shown. For a UI problem, a screenshot helps.
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Output of `nanocloud doctor`
+      description: If it won't run, paste whatever it printed.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: |
+        Lines from around when it happened. On Linux: `journalctl -u nanocloud --since '10 min ago'`. On macOS: `/Library/Logs/nanocloud/nanocloud.log`. Redact any IP addresses or hostnames you'd rather keep private.
+      render: text

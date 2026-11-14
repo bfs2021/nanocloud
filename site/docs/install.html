@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Install Nano Cloud · Nano Cloud</title>
+    <meta name="theme-color" content="#0a0e17" />
+    <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="../style.css" />
+  </head>
+  <body>
+    <header class="doc-top">
+      <a class="wordmark" href="../"><img src="../mark.svg" alt="" width="30" height="21" />nano·cloud</a>
+      <a href="../demo/">Demo</a>
+      <a href="https://github.com/nanocloud-io/nanocloud">GitHub</a>
+    </header>
+    <div class="doc">
+      <nav class="doc-nav" aria-label="Docs"><a href="install.html" aria-current="page">Install</a><a href="update.html">Update and remove</a><a href="networking.html">Networking</a><a href="security.html">Security</a><a href="macos.html">On a Mac</a></nav>
+      <main>
+        <h1>Install Nano Cloud</h1>
+
+<p class="lead">One command, on a Linux host with KVM or an Apple silicon Mac. It takes about a minute.</p>
+<pre><code>curl -fsSL https://raw.githubusercontent.com/nanocloud-io/nanocloud/main/install.sh | sudo sh</code></pre>
+<p>The installer:</p>
+<ol>
+<li>Fetches the latest release's <code>sha256sums.txt</code> and checks its GPG signature against a key built into the script, stopping if it's wrong.</li>
+<li>Fetches the binary for your platform and checks it against that file.</li>
+<li>On Linux, installs libvirt, QEMU and xorriso with apt or dnf.</li>
+<li>Runs <code>nanocloud install</code>, which writes <code>/etc/nano-cloud/config.yaml</code>, starts the service and prints the address, the certificate's fingerprint and a generated password.</li>
+</ol>
+<p>Open the address it prints. Your browser will warn once about the certificate, since it was made on your machine; check its fingerprint against the installer's, then sign in.</p>
+
+<h2>Requirements</h2>
+<table>
+<tr><th>Platform</th><th>Needs</th></tr>
+<tr><td>Linux, x86-64</td><td>KVM (<code>/dev/kvm</code>), systemd, and apt or dnf: Ubuntu, Debian, Fedora and their relatives</td></tr>
+<tr><td>macOS</td><td>Apple silicon, macOS 13 or later, and <code>gpg</code> for the signature check (<code>brew install gnupg</code>). See <a href="macos.html">the Mac page</a>.</td></tr>
+</table>
+<p>A Linux ARM64 build is published too, but it can't create VMs yet: its image catalogue and firmware aren't ready.</p>
+
+<h2>Choose a release</h2>
+<p>To install a specific release, set <code>NANOCLOUD_VERSION</code>:</p>
+<pre><code>curl -fsSL https://raw.githubusercontent.com/nanocloud-io/nanocloud/main/install.sh | sudo NANOCLOUD_VERSION=v0.2.0 sh</code></pre>
+
+<h2 id="by-hand">Install by hand</h2>
+<p>Each release carries the binaries, <code>sha256sums.txt</code> and its signature, <code>sha256sums.txt.sig</code>. These links always point at the latest one:</p>
+<pre><code>curl -fLO https://github.com/nanocloud-io/nanocloud/releases/latest/download/nanocloud-linux-amd64
+curl -fLO https://github.com/nanocloud-io/nanocloud/releases/latest/download/sha256sums.txt
+curl -fLO https://github.com/nanocloud-io/nanocloud/releases/latest/download/sha256sums.txt.sig
+curl -fsSL https://raw.githubusercontent.com/nanocloud-io/nanocloud/main/internal/update/release.asc | gpg --import
+gpg --verify sha256sums.txt.sig sha256sums.txt
+sha256sum --ignore-missing -c sha256sums.txt
+chmod +x nanocloud-linux-amd64
+sudo ./nanocloud-linux-amd64 install</code></pre>
+<p><code>gpg --verify</code> must report a good signature from <code>nano-cloud releases</code>, by the key whose fingerprint is on the <a href="security.html#signing-key">security page</a>. The checksum alone only proves the download matches a file from the same place.</p>
+<p>Install libvirt, QEMU and xorriso yourself first; <code>nanocloud doctor</code> lists what's missing.</p>
+
+<h2>Where things go</h2>
+<table>
+<tr><th>What</th><th>Linux</th><th>macOS</th></tr>
+<tr><td>Binary</td><td colspan="2"><code>/usr/local/bin/nanocloud</code></td></tr>
+<tr><td>Configuration</td><td colspan="2"><code>/etc/nano-cloud/config.yaml</code></td></tr>
+<tr><td>VMs, images, state</td><td><code>/var/lib/nano-cloud</code></td><td><code>/Library/Application Support/nano-cloud</code></td></tr>
+<tr><td>Service</td><td>systemd <code>nanocloud</code></td><td>launchd <code>io.nanocloud.nanocloud</code></td></tr>
+</table>
+
+<h2>Lost the password</h2>
+<pre><code>sudo nanocloud passwd</code></pre>
+<p>This sets and prints a new one, and signs out every browser.</p>
+
+      </main>
+    </div>
+    <footer class="foot">
+      <span>Nano Cloud, open source under Apache-2.0</span>
+      <nav aria-label="Footer"><a href="https://github.com/nanocloud-io/nanocloud">GitHub</a><a href="security.html">Security</a><a href="https://github.com/nanocloud-io/nanocloud/releases">Releases</a></nav>
+      <span class="right">2026</span>
+    </footer>
+  </body>
+</html>

@@ -1,0 +1,213 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+# Only the publishing job writes; the test gate it reuses stays read-only.
+permissions:
+  contents: read
+
+# Serialize releases so two quick pushes to main can't compute the same next
+# version. Queue rather than cancel: never kill a run mid-publish.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  version:
+    name: Compute next version
+    runs-on: ubuntu-latest
+    outputs:
+      next: ${{ steps.version.outputs.next }}
+      skip: ${{ steps.check.outputs.skip }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Compute next version
+        id: version
+        run: |
+          latest=$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -1)
+          # With no tags yet, start at v0.2.0 so hosts on the v0.1.x line see it
+          # as newer and `nanocloud update` offers it.
+          if [ -z "$latest" ]; then
+            next="v0.2.0"
+          else
+            base="${latest#v}"
+            major=$(printf '%s' "$base" | cut -d. -f1)
+            minor=$(printf '%s' "$base" | cut -d. -f2)
+            patch=$(printf '%s' "$base" | cut -d. -f3)
+            next="v${major}.${minor}.$((patch + 1))"
+          fi
+          echo "next=${next}" >> "$GITHUB_OUTPUT"
+          echo "Will release: ${next}"
+
+      - name: Skip if tag already released
+        id: check
+        run: |
+          if git rev-parse "${{ steps.version.outputs.next }}" >/dev/null 2>&1; then
+            echo "skip=true"  >> "$GITHUB_OUTPUT"
+            echo "Tag ${{ steps.version.outputs.next }} already exists — skipping release."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  # The release gate is ci.yml itself, so it can't drift from what CI runs.
+  tests:
+    name: Gate / CI suite
+    needs: version
+    if: needs.version.outputs.skip == 'false'
+    uses: ./.github/workflows/ci.yml
+
+  # The macOS binary needs cgo, so it is built on a Mac alongside the test gate
+  # and handed over as an artifact; one signed sha256sums.txt then covers all
+  # three binaries. Its failure fails the release: install.sh and
+  # `nanocloud update` on a Mac need it.
+  build-darwin:
+    name: Build macOS binary
+    needs: version
+    if: needs.version.outputs.skip == 'false'
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+
+      - name: Stamp frontend version
+        run: |
+          version="${{ needs.version.outputs.next }}"
+          npm --prefix web version "${version#v}" --no-git-tag-version --allow-same-version
+
+      - name: Build frontend
+        run: make ui
+
+      # Signed here, before checksumming, with the entitlement the framework
+      # requires: the checksum must cover the binary users actually run.
+      - name: Build and sign
+        run: |
+          version="${{ needs.version.outputs.next }}"
+          ldflags="-s -w -X github.com/nanocloud-io/nanocloud/internal/version.Version=${version}"
+          CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 go build -trimpath -ldflags="${ldflags}" \
+            -o nanocloud-darwin-arm64 ./cmd/nanocloud
+          codesign --force --sign - --entitlements darwin/entitlements.plist nanocloud-darwin-arm64
+          codesign -d --entitlements - --xml nanocloud-darwin-arm64 | grep -q com.apple.security.virtualization
+          ./nanocloud-darwin-arm64 version
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: nanocloud-darwin-arm64
+          path: nanocloud-darwin-arm64
+          retention-days: 1
+
+  release:
+    name: Build and publish release
+    needs: [version, tests, build-darwin]
+    if: needs.version.outputs.skip == 'false'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install host dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libvirt-daemon-system xorriso
+
+      # Stamp the tag into web/package.json before building: it feeds
+      # __APP_VERSION__, the version Settings shows.
+      - name: Stamp frontend version
+        run: |
+          version="${{ needs.version.outputs.next }}"
+          npm --prefix web version "${version#v}" --no-git-tag-version --allow-same-version
+
+      - name: Build frontend
+        run: make ui
+
+      # The daemon's version, reported by `nanocloud version` and GET /system, so
+      # an operator can confirm an upgrade took effect.
+      - name: Cross-compile binaries
+        run: |
+          version="${{ needs.version.outputs.next }}"
+          ldflags="-s -w -X github.com/nanocloud-io/nanocloud/internal/version.Version=${version}"
+          GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="${ldflags}" \
+            -o nanocloud-linux-amd64 ./cmd/nanocloud
+          GOOS=linux GOARCH=arm64 go build -trimpath -ldflags="${ldflags}" \
+            -o nanocloud-linux-arm64 ./cmd/nanocloud
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: nanocloud-darwin-arm64
+
+      - name: Generate checksums
+        run: sha256sum nanocloud-linux-amd64 nanocloud-linux-arm64 nanocloud-darwin-arm64 > sha256sums.txt
+
+      - name: Sign checksums
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+        run: |
+          if [ -z "$GPG_PRIVATE_KEY" ]; then
+            echo "::error::GPG_PRIVATE_KEY secret is not set — releases must be signed."
+            exit 1
+          fi
+          printf '%s' "$GPG_PRIVATE_KEY" | gpg --batch --import
+          gpg --batch --yes --pinentry-mode loopback --passphrase "" \
+            --detach-sign --armor --output sha256sums.txt.sig sha256sums.txt
+          gpg --verify sha256sums.txt.sig sha256sums.txt
+
+      - name: SBOM
+        uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          path: .
+          format: spdx-json
+          output-file: nanocloud.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
+
+      # Lets anyone check a binary was built here, from this commit:
+      # gh attestation verify nanocloud-linux-amd64 -R nanocloud-io/nanocloud
+      # Attestations need a public repository on GitHub's free plans.
+      - name: Attest build provenance
+        if: ${{ !github.event.repository.private }}
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: |
+            nanocloud-linux-amd64
+            nanocloud-linux-arm64
+            nanocloud-darwin-arm64
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3.0.4
+        with:
+          tag_name: ${{ needs.version.outputs.next }}
+          generate_release_notes: true
+          files: |
+            nanocloud-linux-amd64
+            nanocloud-linux-arm64
+            nanocloud-darwin-arm64
+            sha256sums.txt
+            sha256sums.txt.sig
+            nanocloud.spdx.json

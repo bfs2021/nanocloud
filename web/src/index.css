@@ -1,0 +1,748 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+/* Nanodot design tokens. Every colour in the UI is one of these, so the two
+   themes are just two sets of values: dark ("deep space") is the default,
+   light ("paper") is chosen in the sidebar and remembered (see theme.ts).
+   Status colours keep their meaning in both: green is ready, amber is in
+   progress, orange is "needs a look", red is broken. */
+:root,
+[data-theme='dark'] {
+  color-scheme: dark;
+  --nd-bg: #0a0e17;
+  --nd-side: #0c111c;
+  --nd-surface: #111725;
+  --nd-surface-2: #161d2c;
+  --nd-surface-3: #1c2436;
+  --nd-line: #1f2738;
+  --nd-line-soft: #192131;
+  --nd-track: #232c3f;
+  --nd-text: #e6eaf2;
+  --nd-text-2: #c3cbd8;
+  --nd-muted: #94a0b5;
+  --nd-accent: #22d3ee;
+  --nd-accent-hover: #67e8f9;
+  --nd-on-accent: #04141b;
+  --nd-accent-soft: rgba(34, 211, 238, 0.1);
+  --nd-accent-line: rgba(34, 211, 238, 0.35);
+  --nd-violet: #a78bfa;
+  --nd-aurora: linear-gradient(90deg, #22d3ee, #a78bfa, #22d3ee);
+  --nd-ready: #34d399;
+  --nd-ready-bg: rgba(52, 211, 153, 0.12);
+  --nd-ready-line: rgba(52, 211, 153, 0.35);
+  --nd-ready-glow: 0 0 0 3px rgba(52, 211, 153, 0.15), 0 0 12px rgba(52, 211, 153, 0.55);
+  --nd-warn: #fbbf24;
+  --nd-warn-bg: rgba(251, 191, 36, 0.12);
+  --nd-warn-line: rgba(251, 191, 36, 0.35);
+  --nd-alert: #f59e0b;
+  --nd-alert-bg: rgba(245, 158, 11, 0.13);
+  --nd-danger: #f87171;
+  --nd-danger-bg: rgba(248, 113, 113, 0.12);
+  --nd-danger-line: rgba(248, 113, 113, 0.35);
+  --nd-term: #0b101b;
+  --nd-term-text: #d7deea;
+  --nd-shadow: 0 1px 0 rgba(0, 0, 0, 0.25);
+  --nd-shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.45);
+  --nd-scrim: rgba(3, 6, 12, 0.62);
+  --nd-focus: rgba(34, 211, 238, 0.45);
+  --nd-selection: rgba(34, 211, 238, 0.25);
+  /* Chart series, in the order they are handed out: a categorical palette
+     checked for colour-blind separation against each theme's surface. */
+  --nd-series-1: #3987e5;
+  --nd-series-2: #d95926;
+  --nd-series-3: #199e70;
+  --nd-series-4: #c98500;
+  --nd-series-5: #d55181;
+  --nd-series-6: #008300;
+  --nd-series-7: #9085e9;
+  --nd-series-8: #e66767;
+}
+
+[data-theme='light'] {
+  color-scheme: light;
+  --nd-bg: #f6f7fb;
+  --nd-side: #ffffff;
+  --nd-surface: #ffffff;
+  --nd-surface-2: #f1f4f9;
+  --nd-surface-3: #e9edf4;
+  --nd-line: #e2e7f0;
+  --nd-line-soft: #eef1f6;
+  --nd-track: #e3e8f0;
+  --nd-text: #0b1220;
+  --nd-text-2: #3d4757;
+  --nd-muted: #5b6474;
+  --nd-accent: #0e7490;
+  --nd-accent-hover: #155e75;
+  --nd-on-accent: #ffffff;
+  --nd-accent-soft: #e6f4f8;
+  --nd-accent-line: #b9e0ea;
+  --nd-violet: #6d28d9;
+  --nd-aurora: linear-gradient(90deg, #06b6d4, #8b5cf6, #06b6d4);
+  --nd-ready: #047857;
+  --nd-ready-bg: #e3f5ec;
+  --nd-ready-line: #a7e3c8;
+  --nd-ready-glow: 0 0 0 3px rgba(4, 120, 87, 0.14);
+  --nd-warn: #b45309;
+  --nd-warn-bg: #fef3c7;
+  --nd-warn-line: #f8d98a;
+  --nd-alert: #c2410c;
+  --nd-alert-bg: #ffedd5;
+  --nd-danger: #b91c1c;
+  --nd-danger-bg: #fef2f2;
+  --nd-danger-line: #f5c2c2;
+  --nd-term: #f4f6fa;
+  --nd-term-text: #0b1220;
+  --nd-shadow: 0 1px 2px rgba(11, 18, 32, 0.05);
+  --nd-shadow-lg: 0 24px 60px rgba(11, 18, 32, 0.18);
+  --nd-scrim: rgba(11, 18, 32, 0.35);
+  --nd-focus: rgba(14, 116, 144, 0.4);
+  --nd-selection: #cdeaf2;
+  --nd-series-1: #2a78d6;
+  --nd-series-2: #eb6834;
+  --nd-series-3: #1baf7a;
+  --nd-series-4: #eda100;
+  --nd-series-5: #e87ba4;
+  --nd-series-6: #008300;
+  --nd-series-7: #6250d6;
+  --nd-series-8: #e34948;
+}
+
+/* Scales shared by both themes; pick from these rather than inventing a size. */
+:root {
+  --nd-font-sans: 'Geist Variable', system-ui, sans-serif;
+  --nd-font-mono: 'Geist Mono Variable', ui-monospace, Menlo, monospace;
+
+  /* A VM's screen is dark whatever the page's theme: it is the guest's
+     framebuffer, not part of the UI. */
+  --nd-screen: #05080f;
+  --nd-screen-text: #d7deea;
+
+  --nd-text-xs: 11.5px;
+  --nd-text-sm: 12.5px;
+  --nd-text-base: 13.5px;
+  --nd-text-md: 14.5px;
+  --nd-text-lg: 16px;
+  --nd-text-xl: 18px;
+  --nd-text-2xl: 22px;
+  --nd-text-3xl: 28px;
+
+  --nd-radius-sm: 6px;
+  --nd-radius-md: 9px;
+  --nd-radius-lg: 12px;
+  --nd-radius-xl: 16px;
+
+  --nd-space-1: 4px;
+  --nd-space-2: 8px;
+  --nd-space-3: 12px;
+  --nd-space-4: 16px;
+  --nd-space-5: 20px;
+  --nd-space-6: 24px;
+  --nd-space-8: 32px;
+}
+
+body {
+  background: var(--nd-bg);
+  font-family: var(--nd-font-sans);
+  color: var(--nd-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+input,
+textarea,
+button,
+select {
+  font-family: inherit;
+  color: inherit;
+}
+
+input,
+textarea,
+select {
+  background-color: var(--nd-surface);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+}
+
+/* Keyboard focus is always visible, whatever the component's own styles. */
+:focus-visible {
+  outline: 2px solid var(--nd-focus);
+  outline-offset: 2px;
+}
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  box-shadow: 0 0 0 3px var(--nd-focus);
+}
+
+::selection {
+  background: var(--nd-selection);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--nd-line);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--nd-track);
+}
+
+/* Animations */
+@keyframes ncpulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@keyframes ncspin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes ncfadein {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ncblink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.nd-demo-cursor {
+  animation: ncblink 1.1s steps(1) infinite;
+}
+
+/* The boot rail's active step: the aurora sweeping along it. */
+@keyframes ndshimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* A card that can be acted on lifts a little under the pointer. */
+.nd-lift {
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease;
+}
+.nd-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--nd-shadow-lg);
+  border-color: var(--nd-accent-line);
+}
+
+/* The app shell: a sidebar beside the page, which on a phone-width screen
+   becomes a bar across the top (brand and New VM, then the nav in a row).
+   The host card is left out there; the command palette still switches the
+   theme. Layout lives here rather than inline because inline styles cannot
+   respond to the screen width. */
+.nd-shell {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.nd-sidebar {
+  width: 250px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 20px 14px 16px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  border-right: 1px solid var(--nd-line);
+}
+
+.nd-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nd-nav-short {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .nd-shell {
+    flex-direction: column;
+  }
+  .nd-sidebar {
+    width: auto;
+    height: auto;
+    position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-right: 0;
+    border-bottom: 1px solid var(--nd-line);
+  }
+  .nd-sidebar-brand {
+    flex: 1;
+  }
+  /* The four links share the row rather than scroll it off-screen. */
+  .nd-sidebar-nav {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    width: 100%;
+  }
+  .nd-nav-link {
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px !important;
+    padding: 6px 4px !important;
+    font-size: var(--nd-text-xs) !important;
+    text-align: center !important;
+    box-shadow: none !important;
+  }
+  .nd-nav-full {
+    display: none;
+  }
+  .nd-nav-short {
+    display: inline;
+  }
+  .nd-sidebar-services {
+    display: none !important;
+  }
+  /* The host card becomes a strip; the theme is in Settings → General. */
+  .nd-sidebar-host {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 16px !important;
+    width: 100%;
+    margin-top: 0 !important;
+    padding: 10px 12px !important;
+  }
+  .nd-sidebar-host > :first-child,
+  .nd-sidebar-host > [role='alert'] {
+    grid-column: 1 / -1;
+  }
+  .nd-sidebar-trend,
+  .nd-sidebar-theme {
+    display: none;
+  }
+}
+
+/* Primitives (web/src/ui). Classes rather than inline styles so hover,
+   disabled and the phone layout can be expressed at all. */
+.nd-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--nd-space-2);
+  min-height: 40px;
+  padding: 0 var(--nd-space-4);
+  border-radius: var(--nd-radius-md);
+  border: 1px solid transparent;
+  font-size: var(--nd-text-base);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 0.12s ease,
+    border-color 0.12s ease,
+    color 0.12s ease;
+}
+.nd-btn-sm {
+  min-height: 32px;
+  padding: 0 var(--nd-space-3);
+  font-size: var(--nd-text-sm);
+}
+.nd-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.nd-btn-primary {
+  background: var(--nd-accent);
+  color: var(--nd-on-accent);
+}
+.nd-btn-primary:hover:not(:disabled) {
+  background: var(--nd-accent-hover);
+}
+.nd-btn-secondary {
+  background: var(--nd-surface);
+  border-color: var(--nd-line);
+  color: var(--nd-text);
+  font-weight: 500;
+}
+.nd-btn-secondary:hover:not(:disabled) {
+  background: var(--nd-surface-2);
+}
+.nd-btn-quiet {
+  background: none;
+  color: var(--nd-muted);
+  font-weight: 500;
+}
+.nd-btn-quiet:hover:not(:disabled) {
+  background: var(--nd-surface-2);
+  color: var(--nd-text);
+}
+.nd-btn-danger {
+  background: var(--nd-danger-bg);
+  border-color: var(--nd-danger-line);
+  color: var(--nd-danger);
+}
+.nd-btn-danger:hover:not(:disabled) {
+  border-color: var(--nd-danger);
+}
+
+.nd-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: var(--nd-scrim);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 12vh var(--nd-space-4) var(--nd-space-4);
+  overflow-y: auto;
+}
+.nd-dialog {
+  width: min(540px, 100%);
+  background: var(--nd-bg);
+  border: 1px solid var(--nd-line);
+  border-radius: var(--nd-radius-xl);
+  box-shadow: var(--nd-shadow-lg);
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  animation: ncfadein 0.15s ease;
+}
+.nd-dialog-title {
+  font-size: var(--nd-text-xl);
+  font-weight: 650;
+  letter-spacing: -0.015em;
+}
+.nd-dialog-body {
+  font-size: var(--nd-text-md);
+  line-height: 1.55;
+  color: var(--nd-text-2);
+}
+.nd-dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--nd-space-2);
+}
+
+.nd-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.nd-field-label {
+  font-size: var(--nd-text-sm);
+  font-weight: 600;
+  color: var(--nd-text-2);
+}
+.nd-field-hint {
+  font-size: var(--nd-text-sm);
+  color: var(--nd-muted);
+}
+.nd-field-error {
+  font-size: var(--nd-text-sm);
+  color: var(--nd-danger);
+}
+.nd-input {
+  width: 100%;
+  min-height: 40px;
+  padding: 0 var(--nd-space-3);
+  border-radius: var(--nd-radius-md);
+  border: 1px solid var(--nd-line);
+  font-size: var(--nd-text-md);
+}
+textarea.nd-input {
+  padding: 10px var(--nd-space-3);
+  line-height: 1.5;
+  resize: vertical;
+}
+.nd-input:focus {
+  border-color: var(--nd-accent-line);
+}
+.nd-input[aria-invalid='true'] {
+  border-color: var(--nd-danger-line);
+}
+.nd-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.nd-tabs {
+  display: flex;
+  gap: var(--nd-space-1);
+  border-bottom: 1px solid var(--nd-line);
+  overflow-x: auto;
+}
+.nd-tab {
+  min-height: 40px;
+  padding: 0 var(--nd-space-3);
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  background: none;
+  color: var(--nd-muted);
+  font-size: var(--nd-text-base);
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.nd-tab:hover {
+  color: var(--nd-text);
+}
+.nd-tab[aria-selected='true'] {
+  color: var(--nd-text);
+  border-bottom-color: var(--nd-accent);
+  font-weight: 600;
+}
+
+.nd-card {
+  background: var(--nd-surface);
+  border: 1px solid var(--nd-line);
+  border-radius: 14px;
+  box-shadow: var(--nd-shadow);
+  padding: var(--nd-space-5);
+}
+
+.nd-switch {
+  position: relative;
+  flex-shrink: 0;
+  width: 40px;
+  height: 24px;
+  border-radius: 999px;
+  border: 1px solid var(--nd-line);
+  background: var(--nd-track);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+.nd-switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--nd-surface);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s ease;
+}
+.nd-switch[aria-checked='true'] {
+  background: var(--nd-accent);
+  border-color: var(--nd-accent);
+}
+.nd-switch[aria-checked='true']::after {
+  transform: translateX(16px);
+}
+.nd-switch:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.nd-segmented {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  border-radius: var(--nd-radius-md);
+  border: 1px solid var(--nd-line);
+  background: var(--nd-surface-2);
+}
+.nd-segmented label {
+  position: relative;
+  padding: 6px var(--nd-space-3);
+  border-radius: var(--nd-radius-sm);
+  font-size: var(--nd-text-base);
+  color: var(--nd-muted);
+  cursor: pointer;
+}
+.nd-segmented input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  cursor: pointer;
+}
+.nd-segmented label:has(input:checked) {
+  background: var(--nd-surface);
+  color: var(--nd-text);
+  font-weight: 600;
+  box-shadow: var(--nd-shadow);
+}
+.nd-segmented label:has(input:focus-visible) {
+  outline: 2px solid var(--nd-focus);
+  outline-offset: 1px;
+}
+
+/* Settings: a section list beside the open section; on a phone the list
+   becomes a scrolling row above it. */
+.nd-settings {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 720px);
+  gap: var(--nd-space-8);
+  padding: 32px clamp(16px, 3vw, 40px) 60px;
+}
+.nd-settings-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  position: sticky;
+  top: 32px;
+  align-self: start;
+}
+.nd-settings-nav a {
+  padding: 8px var(--nd-space-3);
+  border-radius: var(--nd-radius-md);
+  font-size: var(--nd-text-base);
+  color: var(--nd-text-2);
+  text-decoration: none;
+}
+.nd-settings-nav a:hover {
+  background: var(--nd-surface-2);
+  color: var(--nd-text);
+}
+.nd-settings-nav a[aria-current='page'] {
+  background: var(--nd-accent-soft);
+  color: var(--nd-text);
+  font-weight: 600;
+}
+.nd-settings-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nd-space-5);
+  min-width: 0;
+}
+.nd-settings-title {
+  font-size: var(--nd-text-2xl);
+  font-weight: 650;
+  letter-spacing: -0.015em;
+}
+.nd-settings-lede {
+  margin-top: 6px;
+  font-size: var(--nd-text-md);
+  color: var(--nd-text-2);
+  line-height: 1.55;
+}
+.nd-card-title {
+  font-size: var(--nd-text-lg);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-bottom: var(--nd-space-1);
+}
+.nd-card-text {
+  font-size: var(--nd-text-base);
+  color: var(--nd-text-2);
+  line-height: 1.55;
+}
+.nd-setting-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--nd-space-4);
+}
+.nd-rows > * + * {
+  border-top: 1px solid var(--nd-line-soft);
+}
+.nd-rows > * {
+  padding: var(--nd-space-3) 0;
+}
+.nd-rows > :first-child {
+  padding-top: 0;
+}
+.nd-rows > :last-child {
+  padding-bottom: 0;
+}
+.nd-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.nd-chip {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--nd-accent-line);
+  background: var(--nd-accent-soft);
+  color: var(--nd-accent);
+  font-size: var(--nd-text-xs);
+  font-weight: 600;
+}
+.nd-mono {
+  font-family: var(--nd-font-mono);
+  font-size: var(--nd-text-sm);
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 760px) {
+  .nd-settings {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--nd-space-5);
+    padding-top: var(--nd-space-5);
+  }
+  .nd-settings-nav {
+    position: static;
+    flex-direction: row;
+    overflow-x: auto;
+  }
+  .nd-settings-nav a {
+    white-space: nowrap;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

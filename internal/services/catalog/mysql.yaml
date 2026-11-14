@@ -1,0 +1,47 @@
+id: mysql
+name: MySQL
+category: database
+description: >-
+  MySQL from Ubuntu 24.04, with a database and a user ready to connect to
+  from your machine.
+image: ubuntu-24.04
+sizes:
+  - {id: small, label: Small, vcpus: 1, memory_mb: 1024, disk_gb: 10}
+  - {id: medium, label: Medium, vcpus: 2, memory_mb: 2048, disk_gb: 20, default: true}
+  - {id: large, label: Large, vcpus: 4, memory_mb: 8192, disk_gb: 40}
+params:
+  - {id: database, label: Database, default: app, pattern: '^[a-z_][a-z0-9_]{0,62}$', hint: "lowercase letters, digits and _"}
+  - {id: user, label: User, default: app, pattern: '^[a-z_][a-z0-9_]{0,31}$', hint: "lowercase letters, digits and _"}
+  - {id: password, label: Password, generate: 24, secret: true}
+ports: [3306]
+metrics:
+  - {exporter: mysql}
+install: |
+  apt-get update
+  apt-get install -y mysql-server
+  # Listen beyond the VM; the X protocol stays on loopback.
+  cat > /etc/mysql/mysql.conf.d/zz-nanocloud.cnf <<'CNF'
+  [mysqld]
+  bind-address = 0.0.0.0
+  mysqlx-bind-address = 127.0.0.1
+  CNF
+  systemctl restart mysql
+  for _ in $(seq 1 30); do
+    if mysqladmin ping --silent; then break; fi
+    sleep 1
+  done
+  # root logs in over the socket as the system's root, so no password here.
+  # IF NOT EXISTS: Retry runs a failed install again.
+  mysql -v <<'SQL'
+  CREATE DATABASE IF NOT EXISTS `{{.database}}`;
+  CREATE USER IF NOT EXISTS '{{.user}}'@'%' IDENTIFIED BY '{{.password}}';
+  GRANT ALL PRIVILEGES ON `{{.database}}`.* TO '{{.user}}'@'%';
+  SQL
+endpoints:
+  - {id: db, label: MySQL, port: 3306}
+# --protocol=tcp: given "localhost", the mysql client looks for a local
+# socket instead of connecting to the port.
+outputs:
+  - {id: url, label: Connection URL, value: "mysql://{{.user}}:{{.password}}@{{.addr_db}}/{{.database}}", secret: true}
+  - {id: cli, label: Connect with mysql, value: "mysql --protocol=tcp -h {{.host_db}} -P {{.port_db}} -u {{.user}} -p'{{.password}}' {{.database}}", secret: true}
+  - {id: host, label: Host, value: "{{.addr_db}}"}

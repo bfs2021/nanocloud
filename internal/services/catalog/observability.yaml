@@ -1,0 +1,59 @@
+id: observability
+name: Prometheus + Grafana
+category: monitoring
+description: >-
+  Prometheus and Grafana on one VM, watching every service nano-cloud runs:
+  nano-cloud sets up their metrics and keeps Prometheus told about them, with
+  dashboards and alert rules ready in Grafana on first login.
+image: ubuntu-24.04
+# nano-cloud installs its Prometheus configuration, alert rules and Grafana
+# dashboards once the install is done, and the targets as services come and
+# go (monitor.go): the install itself sets up the software only.
+console: monitoring
+sizes:
+  - {id: small, label: Small, vcpus: 1, memory_mb: 2048, disk_gb: 20}
+  - {id: medium, label: Medium, vcpus: 2, memory_mb: 4096, disk_gb: 40, default: true}
+  - {id: large, label: Large, vcpus: 4, memory_mb: 8192, disk_gb: 80}
+params:
+  - {id: grafana_password, label: Grafana password, generate: 24, secret: true}
+ports: [3000, 9090]
+install: |
+  apt-get update
+  # Ubuntu's Prometheus scrapes itself and the node exporter out of the box.
+  apt-get install -y prometheus prometheus-node-exporter gpg wget
+  # Grafana from its own repository, as Grafana documents.
+  install -d -m 755 /etc/apt/keyrings
+  wget -qO- https://apt.grafana.com/gpg.key | gpg --dearmor > /etc/apt/keyrings/grafana.gpg
+  echo "deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stable main" > /etc/apt/sources.list.d/grafana.list
+  apt-get update
+  apt-get install -y grafana
+  install -d -m 755 /etc/grafana/provisioning/datasources
+  cat > /etc/grafana/provisioning/datasources/nanocloud.yaml <<'YAML'
+  apiVersion: 1
+  datasources:
+    - name: Prometheus
+      type: prometheus
+      access: proxy
+      url: http://localhost:9090
+      isDefault: true
+  YAML
+  # Read by the grafana-server unit, and applied when the admin user is
+  # first created — before the first start, which this is.
+  # Once, even if Retry runs the install again.
+  grep -qx 'GF_SECURITY_ADMIN_PASSWORD={{.grafana_password}}' /etc/default/grafana-server ||
+    echo 'GF_SECURITY_ADMIN_PASSWORD={{.grafana_password}}' >> /etc/default/grafana-server
+  systemctl daemon-reload
+  systemctl enable --now prometheus prometheus-node-exporter grafana-server
+  for _ in $(seq 1 60); do
+    if curl -s -o /dev/null http://127.0.0.1:3000/api/health; then break; fi
+    sleep 2
+  done
+  curl -s -o /dev/null http://127.0.0.1:3000/api/health
+endpoints:
+  - {id: grafana, label: Grafana, port: 3000, scheme: http}
+  - {id: prometheus, label: Prometheus, port: 9090, scheme: http}
+outputs:
+  - {id: grafana, label: Grafana, value: "http://{{.addr_grafana}}"}
+  - {id: grafana_user, label: Grafana user, value: "admin"}
+  - {id: grafana_password, label: Grafana password, value: "{{.grafana_password}}", secret: true}
+  - {id: prometheus, label: Prometheus, value: "http://{{.addr_prometheus}}"}

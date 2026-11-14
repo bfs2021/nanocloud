@@ -1,0 +1,21 @@
+<device>
+  <name>pci_0000_00_17_0</name>
+  <path>/sys/devices/pci0000:00/0000:00:17.0</path>
+  <parent>computer</parent>
+  <driver>
+    <name>ahci</name>
+  </driver>
+  <capability type='pci'>
+    <class>0x010601</class>
+    <domain>0</domain>
+    <bus>0</bus>
+    <slot>23</slot>
+    <function>0</function>
+    <product id='0xa102'>Q170/Q150/B150/H170/H110/Z170/CM236 Chipset SATA Controller [AHCI Mode]</product>
+    <vendor id='0x8086'>Intel Corporation</vendor>
+    <iommuGroup number='9'>
+      <address domain='0x0000' bus='0x00' slot='0x17' function='0x0'/>
+      <address domain='0x0000' bus='0x00' slot='0x1f' function='0x3'/>
+    </iommuGroup>
+  </capability>
+</device>

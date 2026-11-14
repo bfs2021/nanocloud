@@ -1,0 +1,43 @@
+# Written by nano-cloud, which replaces it when it updates the monitoring
+# setup. Every alert names the nano-cloud service it is about (service) and
+# the VM (instance), so nano-cloud can show it on that service.
+groups:
+  - name: nano-cloud
+    rules:
+      - alert: VMDown
+        expr: up{job="node"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          title: VM down
+          when: no answer for 2 min
+          summary: '{{ $labels.instance }} has not answered for 2 minutes'
+      - alert: DiskFillingUp
+        expr: >-
+          1 - node_filesystem_avail_bytes{job="node", mountpoint="/"}
+          / node_filesystem_size_bytes{job="node", mountpoint="/"} > 0.85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          title: Disk filling up
+          when: over 85% full
+          summary: '{{ $labels.instance }}''s disk is {{ $value | humanizePercentage }} full'
+      - alert: PodCrashLooping
+        expr: increase(kube_pod_container_status_restarts_total[15m]) > 3
+        labels:
+          severity: warning
+        annotations:
+          title: Pod crash-looping
+          when: more than 3 restarts in 15 min
+          summary: '{{ $labels.namespace }}/{{ $labels.pod }} restarted {{ $value | printf "%.0f" }} times in 15 minutes'
+      - alert: ServiceUnreachable
+        expr: up{job!="node"} == 0 or pg_up == 0 or mysql_up == 0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          title: Service unreachable
+          when: an endpoint stops answering
+          summary: '{{ $labels.job }} on {{ $labels.instance }} has not answered for 3 minutes'

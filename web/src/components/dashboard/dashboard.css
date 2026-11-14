@@ -1,0 +1,12 @@
+/* Start is a tinted accent, softer than the solid primary button; the
+   doubled class beats .nd-btn-secondary in both its resting and hover rules. */
+.nd-btn.nd-dash-start {
+  background: var(--nd-accent-soft);
+  border-color: var(--nd-accent-line);
+  color: var(--nd-accent);
+  font-weight: 600;
+}
+.nd-btn.nd-dash-start:hover:not(:disabled) {
+  background: var(--nd-accent-soft);
+  border-color: var(--nd-accent);
+}

@@ -1,0 +1,18 @@
+name: Setup libvirt
+description: Install and start libvirtd, and grant the runner user access to its socket.
+inputs:
+  extra-packages:
+    description: More apt packages to install in the same apt run.
+    default: ""
+runs:
+  using: composite
+  steps:
+    - name: Install and start libvirt
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libvirt-daemon-system ${{ inputs.extra-packages }}
+        sudo systemctl start libvirtd.socket libvirtd || sudo systemctl start libvirtd
+        # The daemon socket is root:libvirt 0770 — grant the runner user
+        # access so tests that dial libvirt actually run instead of skipping.
+        sudo setfacl -m "u:$(id -un):rw" /var/run/libvirt/libvirt-sock

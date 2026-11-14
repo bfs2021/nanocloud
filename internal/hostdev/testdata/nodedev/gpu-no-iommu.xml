@@ -1,0 +1,17 @@
+<device>
+  <name>pci_0000_02_00_0</name>
+  <path>/sys/devices/pci0000:00/0000:00:03.1/0000:02:00.0</path>
+  <parent>pci_0000_00_03_1</parent>
+  <driver>
+    <name>amdgpu</name>
+  </driver>
+  <capability type='pci'>
+    <class>0x030000</class>
+    <domain>0</domain>
+    <bus>2</bus>
+    <slot>0</slot>
+    <function>0</function>
+    <product id='0x731f'>Navi 10 [Radeon RX 5600 XT]</product>
+    <vendor id='0x1002'>Advanced Micro Devices, Inc. [AMD/ATI]</vendor>
+  </capability>
+</device>

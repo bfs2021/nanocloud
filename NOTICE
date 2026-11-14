@@ -1,0 +1,40 @@
+Nano Cloud
+Copyright 2026 The Nano Cloud Authors
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+The binary embeds a web interface that includes the following third-party
+software, each under its own license:
+
+- noVNC (https://github.com/novnc/noVNC), Mozilla Public License 2.0.
+  Copyright (C) 2022 The noVNC authors. Its source is available unmodified
+  from that repository. noVNC includes:
+  - pako (https://github.com/nodeca/pako), MIT License.
+    Copyright (C) 2014-2016 by Vitaly Puzrin.
+  - core/crypto/des.js, under BSD-style licenses. Copyright (C) 1999 AT&T
+    Laboratories Cambridge; Copyright (c) 1996 Widget Workshop, Inc.
+- xterm.js and @xterm/addon-fit (https://github.com/xtermjs/xterm.js),
+  MIT License.
+- React and React DOM (https://github.com/facebook/react), MIT License.
+
+The Go binary links the following modules, among others listed in go.mod:
+
+- go-libvirt (https://github.com/digitalocean/go-libvirt), Apache License 2.0.
+- Code-Hex/vz (https://github.com/Code-Hex/vz), MIT License; macOS build only.
+- go-qcow2reader (https://github.com/lima-vm/go-qcow2reader), Apache License 2.0.
+- coder/websocket (https://github.com/coder/websocket), ISC License.
+- golang.org/x/crypto and golang.org/x/sys, BSD 3-Clause License.
+- gopkg.in/yaml.v3 (https://github.com/go-yaml/yaml), MIT License and
+  Apache License 2.0. Copyright 2011-2016 Canonical Ltd.
+
+The web interface and the website (site/) embed the Geist and Geist Mono
+typefaces (https://github.com/vercel/geist-font), SIL Open Font License 1.1,
+packaged by Fontsource. Copyright 2024 The Geist Project Authors. The
+license text is in site/fonts/OFL.txt.
+
+The web interface shows each Linux distribution's logo next to images and
+VMs of that distribution. The logos are trademarks of their owners and are
+used only to identify the distribution. The single-colour drawings come from
+Simple Icons (https://simpleicons.org), CC0 1.0. The Debian open use logo is
+licensed CC BY-SA 3.0 by Software in the Public Interest, Inc., and the Rocky
+Linux logo CC BY-SA 4.0 by the Rocky Enterprise Software Foundation.

@@ -1,0 +1,49 @@
+id: postgres
+name: PostgreSQL
+category: database
+description: >-
+  PostgreSQL from Ubuntu 24.04, with a database and a user ready to connect
+  to from your machine.
+image: ubuntu-24.04
+sizes:
+  - {id: small, label: Small, vcpus: 1, memory_mb: 1024, disk_gb: 10}
+  - {id: medium, label: Medium, vcpus: 2, memory_mb: 2048, disk_gb: 20, default: true}
+  - {id: large, label: Large, vcpus: 4, memory_mb: 8192, disk_gb: 40}
+params:
+  - {id: database, label: Database, default: app, pattern: '^[a-z_][a-z0-9_]{0,62}$', hint: "lowercase letters, digits and _"}
+  - {id: user, label: User, default: app, pattern: '^[a-z_][a-z0-9_]{0,62}$', hint: "lowercase letters, digits and _"}
+  - {id: password, label: Password, generate: 24, secret: true}
+ports: [5432]
+metrics:
+  - {exporter: postgres}
+install: |
+  apt-get update
+  apt-get install -y postgresql
+  wait_pg() {
+    for _ in $(seq 1 30); do
+      if runuser -u postgres -- pg_isready -q; then return 0; fi
+      sleep 1
+    done
+    runuser -u postgres -- pg_isready
+  }
+  wait_pg
+  runuser -u postgres -- psql -v ON_ERROR_STOP=1 -c "ALTER SYSTEM SET listen_addresses = '*'"
+  conf=$(runuser -u postgres -- psql -tAc 'SHOW hba_file')
+  # Every step may run twice: Retry runs a failed install again.
+  grep -qxF "host all all 0.0.0.0/0 scram-sha-256" "$conf" || echo "host all all 0.0.0.0/0 scram-sha-256" >> "$conf"
+  systemctl restart postgresql
+  wait_pg
+  runuser -u postgres -- psql -v ON_ERROR_STOP=1 <<'SQL'
+  DO $$ BEGIN
+    CREATE ROLE "{{.user}}" LOGIN PASSWORD '{{.password}}';
+  EXCEPTION WHEN duplicate_object THEN NULL;
+  END $$;
+  SELECT 'CREATE DATABASE "{{.database}}" OWNER "{{.user}}"'
+  WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '{{.database}}')\gexec
+  SQL
+endpoints:
+  - {id: db, label: PostgreSQL, port: 5432}
+outputs:
+  - {id: url, label: Connection URL, value: "postgres://{{.user}}:{{.password}}@{{.addr_db}}/{{.database}}", secret: true}
+  - {id: psql, label: Connect with psql, value: "psql \"postgres://{{.user}}:{{.password}}@{{.addr_db}}/{{.database}}\"", secret: true}
+  - {id: host, label: Host, value: "{{.addr_db}}"}

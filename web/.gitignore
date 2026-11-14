@@ -1,0 +1,2 @@
+# The public demo build (npm run build:demo); published by pages.yml, never embedded.
+/dist-demo/
