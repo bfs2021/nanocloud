@@ -33,7 +33,11 @@ func (s *Server) handleEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	evs, cursor := s.events.Since(since, int(min(limit, maxEventsPage)))
+	page := maxEventsPage
+	if limit < maxEventsPage {
+		page = int(limit)
+	}
+	evs, cursor := s.events.Since(since, page)
 	if evs == nil {
 		evs = []events.Event{}
 	}

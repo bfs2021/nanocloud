@@ -84,6 +84,27 @@ func Fingerprint(certPath string) (string, error) {
 	return strings.Join(parts, ":"), nil
 }
 
+// LoopbackConfig trusts only the certificate at certPath, for the CLI's own
+// requests to the local daemon. The certificate is its own root, so this works
+// whether it is self-signed or CA-issued, and ServerName is a name it carries:
+// a certificate the user supplied need not list 127.0.0.1.
+func LoopbackConfig(certPath string) (*tls.Config, error) {
+	c, err := readCert(certPath)
+	if err != nil {
+		return nil, err
+	}
+	pool := x509.NewCertPool()
+	pool.AddCert(c)
+	name := "localhost"
+	switch {
+	case len(c.DNSNames) > 0:
+		name = c.DNSNames[0]
+	case len(c.IPAddresses) > 0:
+		name = c.IPAddresses[0].String()
+	}
+	return &tls.Config{RootCAs: pool, ServerName: name, MinVersion: tls.VersionTLS12}, nil
+}
+
 func generate(now time.Time) (certPEM, keyPEM []byte, err error) {
 	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {

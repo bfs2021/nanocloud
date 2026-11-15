@@ -121,17 +121,24 @@ func pciAddress(domain, bus, slot, function int) string {
 func groupAddresses(g iommuGroupXML) []string {
 	out := make([]string, 0, len(g.Addresses))
 	for _, a := range g.Addresses {
-		dom, ok1 := parseHex(a.Domain)
-		bus, ok2 := parseHex(a.Bus)
-		slot, ok3 := parseHex(a.Slot)
-		fn, ok4 := parseHex(a.Function)
+		dom, ok1 := parseAddrPart(a.Domain)
+		bus, ok2 := parseAddrPart(a.Bus)
+		slot, ok3 := parseAddrPart(a.Slot)
+		fn, ok4 := parseAddrPart(a.Function)
 		if !ok1 || !ok2 || !ok3 || !ok4 {
 			continue
 		}
-		out = append(out, pciAddress(int(dom), int(bus), int(slot), int(fn)))
+		out = append(out, pciAddress(dom, bus, slot, fn))
 	}
 	sort.Strings(out)
 	return out
+}
+
+// parseAddrPart reads one field of a PCI address. 32 bits holds any domain,
+// VMD's included, and always fits an int.
+func parseAddrPart(s string) (int, bool) {
+	v, err := strconv.ParseInt(strings.TrimSpace(s), 0, 32)
+	return int(v), err == nil && v >= 0
 }
 
 func parseHex(s string) (uint64, bool) {

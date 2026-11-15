@@ -7,6 +7,9 @@ updates:
     groups:
       go:
         patterns: ["*"]
+      go-security:
+        applies-to: security-updates
+        patterns: ["*"]
 
   - package-ecosystem: npm
     directory: /web
@@ -16,18 +19,13 @@ updates:
       web:
         patterns: ["*"]
         update-types: [minor, patch]
-    # These majors only pass CI upgraded together (Vite with its React
-    # plugin, eslint with its config package), so one-at-a-time PRs fail.
+      web-security:
+        applies-to: security-updates
+        patterns: ["*"]
+    # A new major of a build or test tool needs code changes alongside it, so
+    # majors are upgraded by hand, together, rather than in one failing PR each.
     ignore:
-      - dependency-name: "vite"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "@vitejs/plugin-react"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "eslint"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "@eslint/js"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "jsdom"
+      - dependency-name: "*"
         update-types: ["version-update:semver-major"]
 
   - package-ecosystem: npm
@@ -36,6 +34,9 @@ updates:
       interval: weekly
     groups:
       e2e:
+        patterns: ["*"]
+      e2e-security:
+        applies-to: security-updates
         patterns: ["*"]
 
   - package-ecosystem: github-actions

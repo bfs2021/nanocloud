@@ -664,13 +664,18 @@ func (s *Server) handleVMCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	switch {
-	case strings.TrimSpace(req.Name) == "":
+	if strings.TrimSpace(req.Name) == "" {
 		http.Error(w, `"name" is required`, http.StatusBadRequest)
 		return
-	case !vmNamePattern.MatchString(req.Name):
+	}
+	// An if, not a switch case: code scanning only sees an if as guarding the
+	// disk and seed paths built from the name below.
+	if !vmNamePattern.MatchString(req.Name) {
 		http.Error(w, vmNameRule, http.StatusBadRequest)
 		return
+	}
+
+	switch {
 	case strings.TrimSpace(req.ImageID) == "":
 		http.Error(w, `"image_id" is required`, http.StatusBadRequest)
 		return
