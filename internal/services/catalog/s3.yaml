@@ -14,10 +14,24 @@ params:
   - {id: secret_key, label: Secret key, generate: 40, secret: true}
 ports: [8333]
 install: |
+  # Pinned so a new upstream release cannot change a running service. To bump,
+  # set version and each arch's sum to the sha256 of that release's tarball.
+  version=4.53
   arch=$(dpkg --print-architecture)
-  curl -fsSL "https://github.com/seaweedfs/seaweedfs/releases/latest/download/linux_${arch}.tar.gz" -o /tmp/weed.tgz
-  tar -xzf /tmp/weed.tgz -C /usr/local/bin weed
-  rm -f /tmp/weed.tgz
+  case "$arch" in
+    amd64) sum=d1a7dec9f48d8b33895a0ea8951971defc2dc5312906dcc76fa5a5f74a6ee90d ;;
+    arm64) sum=2eee359ed0ce8a70b711b30162fadda0cd4ea818e13c73d2f156a76f9359717d ;;
+    *) fail "SeaweedFS $version has no build for this VM's architecture ($arch)" ;;
+  esac
+  tgz=$(mktemp)
+  curl -fsSL "https://github.com/seaweedfs/seaweedfs/releases/download/${version}/linux_${arch}.tar.gz" -o "$tgz"
+  got=$(sha256sum "$tgz" | cut -d' ' -f1)
+  if [ "$got" != "$sum" ]; then
+    rm -f "$tgz"
+    fail "the SeaweedFS $version download for $arch does not match its pinned SHA-256 (got $got, want $sum), so it was not installed"
+  fi
+  tar -xzf "$tgz" -C /usr/local/bin weed
+  rm -f "$tgz"
   install -d -m 700 /etc/seaweedfs /var/lib/seaweedfs
   cat > /etc/seaweedfs/s3.json <<'JSON'
   {"identities": [{"name": "nanocloud", "credentials": [{"accessKey": "{{.access_key}}", "secretKey": "{{.secret_key}}"}], "actions": ["Admin", "Read", "List", "Tagging", "Write"]}]}

@@ -1,12 +1,20 @@
 package tlscert
 
 import (
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"crypto/tls"
 	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/pem"
 	"io"
+	"math/big"
 	"net"
 	"net/http"
+	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -159,4 +167,92 @@ func TestPlainHTTPHeadersAreBounded(t *testing.T) {
 			t.Error("the redirect was still reading headers after 64 KiB")
 		}
 	}
+}
+
+func TestLoopbackConfigTrustsOnlyTheServedCertificate(t *testing.T) {
+	certPath, keyPath, err := EnsureSelfSigned(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	otherPath, _, err := EnsureSelfSigned(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	caIssuedPath, caIssuedKey := caIssuedPair(t, "nas.example")
+
+	for _, tc := range []struct {
+		name          string
+		served, key   string
+		trusted       string
+		wantConnected bool
+	}{
+		{"the daemon's own certificate", certPath, keyPath, certPath, true},
+		{"a different certificate", certPath, keyPath, otherPath, false},
+		{"a CA-issued certificate not naming 127.0.0.1", caIssuedPath, caIssuedKey, caIssuedPath, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			pair, err := tls.LoadX509KeyPair(tc.served, tc.key)
+			if err != nil {
+				t.Fatal(err)
+			}
+			srv := httptest.NewUnstartedServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+			srv.TLS = &tls.Config{Certificates: []tls.Certificate{pair}}
+			srv.StartTLS()
+			defer srv.Close()
+
+			cfg, err := LoopbackConfig(tc.trusted)
+			if err != nil {
+				t.Fatal(err)
+			}
+			client := &http.Client{Transport: &http.Transport{TLSClientConfig: cfg}}
+			resp, err := client.Get(srv.URL)
+			if err == nil {
+				_ = resp.Body.Close()
+			}
+			if (err == nil) != tc.wantConnected {
+				t.Errorf("GET %s: err = %v, want connected = %v", srv.URL, err, tc.wantConnected)
+			}
+		})
+	}
+}
+
+// caIssuedPair writes a leaf for name, signed by a throwaway CA, the way a
+// certificate the user supplies usually is.
+func caIssuedPair(t *testing.T, name string) (certPath, keyPath string) {
+	t.Helper()
+	newKey := func() *ecdsa.PrivateKey {
+		k, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return k
+	}
+	caKey, leafKey := newKey(), newKey()
+	ca := &x509.Certificate{
+		SerialNumber: big.NewInt(1), Subject: pkix.Name{CommonName: "test CA"},
+		NotBefore: time.Now().Add(-time.Hour), NotAfter: time.Now().Add(time.Hour),
+		IsCA: true, BasicConstraintsValid: true, KeyUsage: x509.KeyUsageCertSign,
+	}
+	leaf := &x509.Certificate{
+		SerialNumber: big.NewInt(2), Subject: pkix.Name{CommonName: name}, DNSNames: []string{name},
+		NotBefore: time.Now().Add(-time.Hour), NotAfter: time.Now().Add(time.Hour),
+		KeyUsage: x509.KeyUsageDigitalSignature, ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+	}
+	der, err := x509.CreateCertificate(rand.Reader, leaf, ca, &leafKey.PublicKey, caKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	keyDER, err := x509.MarshalECPrivateKey(leafKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := t.TempDir()
+	certPath, keyPath = filepath.Join(dir, "cert.pem"), filepath.Join(dir, "key.pem")
+	if err := os.WriteFile(certPath, pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der}), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(keyPath, pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: keyDER}), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return certPath, keyPath
 }

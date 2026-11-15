@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -14,7 +13,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/nanocloud-io/nanocloud/internal/config"
 	"github.com/nanocloud-io/nanocloud/internal/install"
 	"github.com/nanocloud-io/nanocloud/internal/update"
 	"github.com/nanocloud-io/nanocloud/internal/version"
@@ -69,6 +67,12 @@ func cmdUpdate(args []string) {
 // daemon does not come back on it. It returns rather than exiting so the
 // download directory is always removed.
 func installRelease(ctx context.Context, tag string) error {
+	// Checked here, not left to the new binary's install, because the download
+	// and the .prev copy that rollback runs as root are written first.
+	if err := install.CheckBinPath(); err != nil {
+		return err
+	}
+
 	// The download sits beside the installed binary: /tmp may be noexec, and
 	// the new binary has to run to install itself.
 	work, err := os.MkdirTemp(filepath.Dir(install.BinPath), ".nanocloud-update-")
@@ -133,20 +137,12 @@ func runInstall(bin string) error {
 // waitForVersion polls the local daemon's /health until it reports tag, which
 // catches a unit that restarted on the old binary.
 func waitForVersion(tag string) error {
-	port := 8080
-	if cfg, err := config.Load(config.DefaultPath); err == nil && cfg.Port != 0 {
-		port = cfg.Port
-	}
-	client := &http.Client{
-		Timeout: 2 * time.Second,
-		// Loopback, to a certificate the daemon made itself: this asks which
-		// version answers, not who it is.
-		Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}, //nolint:gosec // see above
-	}
-	var seen string
+	var seen, url string
 	for range 30 {
-		for _, scheme := range []string{"https", "http"} {
-			if v, err := healthVersion(client, fmt.Sprintf("%s://127.0.0.1:%d/health", scheme, port)); err == nil {
+		u, client, err := install.DaemonHealth()
+		url = u
+		if err == nil {
+			if v, err := healthVersion(client, u); err == nil {
 				if v == tag {
 					return nil
 				}
@@ -158,7 +154,7 @@ func waitForVersion(tag string) error {
 	if seen != "" {
 		return fmt.Errorf("the daemon is still reporting %s, not %s", seen, tag)
 	}
-	return fmt.Errorf("the daemon did not answer on port %d", port)
+	return fmt.Errorf("the daemon did not answer at %s", url)
 }
 
 func healthVersion(client *http.Client, url string) (string, error) {

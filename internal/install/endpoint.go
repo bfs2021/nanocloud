@@ -1,7 +1,6 @@
 package install
 
 import (
-	"crypto/tls"
 	"fmt"
 	"net/http"
 	"os"
@@ -19,25 +18,29 @@ type endpoint struct {
 	stateDir string
 	// selfSigned is whether the daemon makes its own certificate.
 	selfSigned bool
+	// certPath is the certificate the daemon serves, empty over plain HTTP.
+	certPath string
 }
 
 func installedEndpoint() endpoint {
 	e := endpoint{scheme: "https", port: defaultPort, stateDir: dataDir, selfSigned: true}
-	cfg, err := config.Load(cfgPath)
-	if err != nil {
-		return e
+	if cfg, err := config.Load(cfgPath); err == nil {
+		if cfg.Port != 0 {
+			e.port = cfg.Port
+		}
+		if cfg.MetadataPath != "" {
+			e.stateDir = filepath.Dir(cfg.MetadataPath)
+		}
+		if !cfg.TLSEnabled() {
+			e.scheme, e.selfSigned = "http", false
+			return e
+		}
+		if cfg.TLS.Cert != "" {
+			e.selfSigned, e.certPath = false, cfg.TLS.Cert
+			return e
+		}
 	}
-	if cfg.Port != 0 {
-		e.port = cfg.Port
-	}
-	if cfg.MetadataPath != "" {
-		e.stateDir = filepath.Dir(cfg.MetadataPath)
-	}
-	if !cfg.TLSEnabled() {
-		e.scheme, e.selfSigned = "http", false
-	} else if cfg.TLS.Cert != "" {
-		e.selfSigned = false
-	}
+	e.certPath, _ = tlscert.Paths(filepath.Join(e.stateDir, "tls"))
 	return e
 }
 
@@ -62,30 +65,50 @@ func (e endpoint) printAccess() {
 	if !e.selfSigned {
 		return
 	}
-	certPath, _ := tlscert.Paths(filepath.Join(e.stateDir, "tls"))
-	if fp, err := tlscert.Fingerprint(certPath); err == nil {
+	if fp, err := tlscert.Fingerprint(e.certPath); err == nil {
 		fmt.Println("The certificate is self-signed, so the browser will warn once. Its SHA-256 fingerprint is:")
 		fmt.Printf("  %s\n", fp)
 	}
 }
 
+// DaemonHealth returns the installed daemon's loopback /health URL and a
+// client that trusts only the certificate the daemon serves.
+func DaemonHealth() (string, *http.Client, error) {
+	e := installedEndpoint()
+	client, err := loopbackClient(e.certPath)
+	return e.healthURL(), client, err
+}
+
+// loopbackClient trusts only the certificate at certPath, or speaks plain
+// HTTP when it is empty.
+func loopbackClient(certPath string) (*http.Client, error) {
+	client := &http.Client{Timeout: 2 * time.Second}
+	if certPath == "" {
+		return client, nil
+	}
+	cfg, err := tlscert.LoopbackConfig(certPath)
+	if err != nil {
+		return nil, err
+	}
+	client.Transport = &http.Transport{TLSClientConfig: cfg}
+	return client, nil
+}
+
 // waitForHealthy polls url until it answers 200. systemd and launchd both
 // report the service up as soon as the process exists, so only this tells a
 // serving daemon from one that failed to bind or crashed loading config.
-func waitForHealthy(url string, attempts int, delay time.Duration) bool {
-	client := &http.Client{
-		Timeout: 2 * time.Second,
-		// Loopback to the daemon's own certificate; this only asks whether
-		// it is up.
-		Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}, //nolint:gosec // see above
-	}
+// The certificate is read on every attempt: a daemon starting for the first
+// time writes it after polling has begun.
+func waitForHealthy(url, certPath string, attempts int, delay time.Duration) bool {
 	for i := 0; i < attempts; i++ {
-		resp, err := client.Get(url)
-		if err == nil {
-			healthy := resp.StatusCode == http.StatusOK
-			resp.Body.Close() //nolint:errcheck // response already consumed; close is best-effort
-			if healthy {
-				return true
+		if client, err := loopbackClient(certPath); err == nil {
+			resp, err := client.Get(url)
+			if err == nil {
+				healthy := resp.StatusCode == http.StatusOK
+				resp.Body.Close() //nolint:errcheck // response already consumed; close is best-effort
+				if healthy {
+					return true
+				}
 			}
 		}
 		time.Sleep(delay)

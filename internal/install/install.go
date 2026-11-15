@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -26,6 +27,13 @@ const (
 	// defaultPort mirrors the server's default, for the post-install health
 	// probe when config.yaml does not pin a port.
 	defaultPort = 8080
+
+	serviceManager = "systemd"
+	rootGroup      = "root"
+	// trustStaff accepts a directory that group staff can write. Debian lays
+	// out /usr/local as root:staff 2775 and documents staff as able to modify
+	// it, so its members can already replace binaries on root's PATH.
+	trustStaff = true
 )
 
 // defaultConfig is the minimal config written on first install.
@@ -159,6 +167,13 @@ func Run(unitBytes []byte) error {
 		return fmt.Errorf("install must be run as root (try: sudo nanocloud install)")
 	}
 
+	// systemd runs binDst as root, so anyone who can change it or rename a
+	// directory above it gets root. Directories are checked before anything
+	// else so a refusal leaves the host unchanged.
+	if err := checkRootOnly(filepath.Dir(binDst), hostFS{}); err != nil {
+		return err
+	}
+
 	if err := installHostDeps(); err != nil {
 		return err
 	}
@@ -168,11 +183,15 @@ func Run(unitBytes []byte) error {
 	if err := copyBinary(); err != nil {
 		return err
 	}
+	if err := checkRootOnly(binDst, hostFS{}); err != nil {
+		return err
+	}
 
-	for _, dir := range []string{cfgDir, dataDir, imagesDir, vmDisksDir} {
-		if err := os.MkdirAll(dir, 0o755); err != nil {
-			return fmt.Errorf("mkdir %s: %w", dir, err)
-		}
+	if err := os.MkdirAll(cfgDir, 0o755); err != nil {
+		return fmt.Errorf("mkdir %s: %w", cfgDir, err)
+	}
+	if err := makeStateDirs(dataDir, imagesDir, vmDisksDir); err != nil {
+		return err
 	}
 
 	if err := writeFileIfAbsent(cfgPath, []byte(defaultConfig), 0o644); err != nil {
@@ -197,7 +216,7 @@ func Run(unitBytes []byte) error {
 	}
 
 	ep := installedEndpoint()
-	if url := ep.healthURL(); !waitForHealthy(url, 10, time.Second) {
+	if url := ep.healthURL(); !waitForHealthy(url, ep.certPath, 10, time.Second) {
 		return fmt.Errorf(
 			"%s is active but never answered %s — it may have failed to bind the port or crashed while loading config.\nCheck what happened with: journalctl -u %s -e",
 			serviceName, url, serviceName,
